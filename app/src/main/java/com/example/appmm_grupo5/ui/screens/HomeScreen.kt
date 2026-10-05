@@ -1,4 +1,4 @@
-package com.example.appmm_grupo5.ui
+package com.example.appmm_grupo5.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
