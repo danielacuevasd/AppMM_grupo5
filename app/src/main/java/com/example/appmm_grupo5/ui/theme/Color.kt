@@ -2,10 +2,17 @@ package com.example.appmm_grupo5.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Colores institucionales tomados de mastermartini.cl
+val DoradoMartini = Color(0xFFB69F58)   // Dorado de la marca (cuadro del logo)
+val DoradoClaro = Color(0xFFF3EBD3)     // Dorado suave para fondos y etiquetas
+val VerdeMartini = Color(0xFF004D42)    // Verde oscuro de la marca (botones principales)
+val VerdeClaro = Color(0xFF65BD7D)      // Verde de acento (confirmaciones)
+val AzulInfo = Color(0xFF198FD9)        // Azul para mensajes informativos
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Neutros
+val FondoClaro = Color(0xFFF9F9FB)
+val SuperficieGris = Color(0xFFF2F3F5)
+val TextoPrincipal = Color(0xFF212326)
+val TextoSecundario = Color(0xFF434549)
+val Blanco = Color(0xFFFFFFFF)
+val ErrorRojo = Color(0xFFB3261E)
