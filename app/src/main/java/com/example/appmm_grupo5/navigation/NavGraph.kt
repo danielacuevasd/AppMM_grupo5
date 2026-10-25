@@ -8,8 +8,11 @@ import androidx.navigation.compose.composable
 import com.example.appmm_grupo5.ui.screens.AprenderScreen
 import com.example.appmm_grupo5.ui.screens.EventosScreen
 import com.example.appmm_grupo5.ui.screens.HomeScreenAdaptable
+import com.example.appmm_grupo5.ui.screens.LoginScreen
 import com.example.appmm_grupo5.ui.screens.PerfilScreen
+import com.example.appmm_grupo5.ui.screens.RegistroScreen
 import com.example.appmm_grupo5.viewmodel.MainViewModel
+import com.example.appmm_grupo5.viewmodel.UsuarioViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 // Graph de navegacion: une cada ruta screen con su correspondiente
@@ -20,6 +23,9 @@ fun AppNavGraph(
     navController: NavHostController,
     viewModel: MainViewModel
 ) {
+    // Un solo ViewModel de usuario compartido por Login y Registro
+    val usuarioViewModel: UsuarioViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
     // Escucha los eventos de navegación que emite el ViewModel y los ejecuta en el NavController
     LaunchedEffect(key1 = Unit) {
         viewModel.navigationEvents.collectLatest { event ->
@@ -40,11 +46,29 @@ fun AppNavGraph(
         }
     }
 
-    // Siempre empieza en el inicio
+    // TODO tarjeta 6: si hay una sesión guardada, empezar en Inicio
     NavHost(
         navController = navController,
-        startDestination = Screen.Inicio.route
+        startDestination = Screen.Login.route
     ) {
+        composable(route = Screen.Login.route) {
+            LoginScreen(
+                viewModel = usuarioViewModel,
+                onLoginExitoso = {
+                    viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
+                },
+                onIrARegistro = { viewModel.navigateTo(Screen.Registro, singleTop = true) }
+            )
+        }
+        composable(route = Screen.Registro.route) {
+            RegistroScreen(
+                viewModel = usuarioViewModel,
+                onRegistroExitoso = {
+                    viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
+                },
+                onVolver = { viewModel.navigateBack() }
+            )
+        }
         composable(route = Screen.Inicio.route) {
             HomeScreenAdaptable(
                 onComenzar = { viewModel.navigateTo(Screen.Aprender) },
