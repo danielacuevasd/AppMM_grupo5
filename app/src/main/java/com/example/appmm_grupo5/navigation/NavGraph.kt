@@ -46,7 +46,10 @@ fun AppNavGraph(
         startDestination = Screen.Inicio.route
     ) {
         composable(route = Screen.Inicio.route) {
-            HomeScreenAdaptable()
+            HomeScreenAdaptable(
+                onComenzar = { viewModel.navigateTo(Screen.Aprender) },
+                onVerEventos = { viewModel.navigateTo(Screen.Eventos) }
+            )
         }
         composable(route = Screen.Aprender.route) {
             AprenderScreen(viewModel = viewModel)
