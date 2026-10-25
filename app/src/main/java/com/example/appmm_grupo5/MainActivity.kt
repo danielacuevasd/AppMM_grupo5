@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.appmm_grupo5.ui.screens.HomeScreen
+import com.example.appmm_grupo5.ui.screens.HomeScreenAdaptable
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +13,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AppMM_grupo5Theme {
-                HomeScreen()
+                // Aqui llamamos la fun de HomeScreenAdaptable para que muestre el tamano correcto
+                HomeScreenAdaptable()
             }
         }
     }
