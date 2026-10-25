@@ -8,9 +8,10 @@ import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
 @Composable
 fun HomeScreenCompacta(
     onComenzar: () -> Unit = {},
-    onVerEventos: () -> Unit = {}
+    onVerEventos: () -> Unit = {},
+    onMenu: () -> Unit = {}
 ) {
-    HomeScreen(onComenzar = onComenzar, onVerEventos = onVerEventos)
+    HomeScreen(onComenzar = onComenzar, onVerEventos = onVerEventos, onMenu = onMenu)
 }
 
 @Preview(name = "Compacta", widthDp = 360, heightDp = 800, showBackground = true)

@@ -36,6 +36,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appmm_grupo5.R
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.IconButton
 
 // Categorías de ejemplo; se reemplazan cuando definan el modelo de categorías
 val categorias = listOf("Pastelería", "Chocolatería", "Panadería", "Heladería")
@@ -44,13 +46,19 @@ val categorias = listOf("Pastelería", "Chocolatería", "Panadería", "Heladerí
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onComenzar: () -> Unit = {},    // se conecta a la navegación más adelante
-    onVerEventos: () -> Unit = {}
+    onComenzar: () -> Unit = {},
+    onVerEventos: () -> Unit = {} ,
+    onMenu: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Master Martini Academia") },
+                navigationIcon = {
+                    IconButton(onClick = onMenu) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Abrir menú")
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary

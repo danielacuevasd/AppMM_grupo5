@@ -36,17 +36,25 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appmm_grupo5.R
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.IconButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenExpandida(
     onComenzar: () -> Unit = {},
-    onVerEventos: () -> Unit = {}
+    onVerEventos: () -> Unit = {} ,
+    onMenu: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Master Martini Academia") },
+                navigationIcon = {
+                    IconButton(onClick = onMenu) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Abrir menú")
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
