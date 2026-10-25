@@ -38,7 +38,7 @@ import com.example.appmm_grupo5.R
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
 
 // Categorías de ejemplo; se reemplazan cuando definan el modelo de categorías
-private val categorias = listOf("Pastelería", "Chocolatería", "Panadería", "Heladería")
+val categorias = listOf("Pastelería", "Chocolatería", "Panadería", "Heladería")
 
 // Pantalla base de la aplicación construida con Scaffold
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,7 +129,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TarjetaCategoria(nombre: String, modifier: Modifier = Modifier) {
+fun TarjetaCategoria(nombre: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
