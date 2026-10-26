@@ -15,6 +15,7 @@ import com.example.appmm_grupo5.viewmodel.MainViewModel
 import com.example.appmm_grupo5.viewmodel.UsuarioViewModel
 import kotlinx.coroutines.flow.collectLatest
 import com.example.appmm_grupo5.viewmodel.PerfilViewModel
+import com.example.appmm_grupo5.ui.screens.EncuestaScreen
 
 // Graph de navegacion: une cada ruta screen con su correspondiente
 // - NavController: lleva la pila de pantallas y los eventos de navegacion.
@@ -87,7 +88,17 @@ fun AppNavGraph(
             EventosScreen(viewModel = viewModel)
         }
         composable(route = Screen.Perfil.route) {
-            PerfilScreen(viewModel = viewModel, perfilViewModel = perfilViewModel)
+            PerfilScreen(
+                viewModel = viewModel,
+                perfilViewModel = perfilViewModel,
+                onIrAEncuesta = { viewModel.navigateTo(Screen.Encuesta) }
+            )
+        }
+        composable(route = Screen.Encuesta.route) {
+            EncuestaScreen(
+                perfilViewModel = perfilViewModel,
+                onVolver = { viewModel.navigateBack() }
+            )
         }
     }
 }
