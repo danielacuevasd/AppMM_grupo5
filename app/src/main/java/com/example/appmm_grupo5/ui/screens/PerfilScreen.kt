@@ -2,29 +2,59 @@ package com.example.appmm_grupo5.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.appmm_grupo5.model.OpcionesPerfil
 import com.example.appmm_grupo5.navigation.Screen
+import com.example.appmm_grupo5.ui.components.BotonPrincipal
+import com.example.appmm_grupo5.ui.components.CampoTexto
+import com.example.appmm_grupo5.ui.components.DialogoErrores
+import com.example.appmm_grupo5.ui.components.OpcionesRadio
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
 import com.example.appmm_grupo5.viewmodel.MainViewModel
+import com.example.appmm_grupo5.viewmodel.PerfilViewModel
+import kotlinx.coroutines.launch
+
 private data class ItemBarra(val screen: Screen, val etiqueta: String, val icono: ImageVector)
 
 private val itemsBarra = listOf(
@@ -34,10 +64,30 @@ private val itemsBarra = listOf(
     ItemBarra(Screen.Perfil, "Perfil", Icons.Filled.Person)
 )
 
-// Pantalla de Perfil de usuario.
+// Pantalla de Perfil. No tiene reglas: pide al ViewModel que valide y reaccione al resultado
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PerfilScreen(viewModel: MainViewModel) {
+fun PerfilScreen(
+    viewModel: MainViewModel,
+    perfilViewModel: PerfilViewModel,
+    onIrAEncuesta: () -> Unit = {}
+) {
+    val perfil by perfilViewModel.perfil.collectAsState()
+    var mostrarErrores by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Perfil del negocio") },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavigationBar {
                 itemsBarra.forEach { item ->
@@ -57,16 +107,91 @@ fun PerfilScreen(viewModel: MainViewModel) {
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Aquí estara el perfil del usuario y de su negocio",
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center
-            )
+            // En tablet el formulario no se estira: se limita el ancho y queda centrado
+            Column(
+                modifier = Modifier.widthIn(max = 600.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CampoTexto(
+                    valor = perfil.nombreNegocio,
+                    onValorChange = perfilViewModel::onNombreNegocioChange,
+                    etiqueta = "Nombre del negocio",
+                    iconoInicial = Icons.Filled.Store,
+                    error = perfil.errores.nombreNegocio
+                )
+                CampoTexto(
+                    valor = perfil.rutEmpresa,
+                    onValorChange = perfilViewModel::onRutEmpresaChange,
+                    etiqueta = "RUT de la empresa",
+                    iconoInicial = Icons.Filled.Badge,
+                    error = perfil.errores.rutEmpresa
+                )
+                OpcionesRadio(
+                    titulo = "Tipo de negocio",
+                    opciones = OpcionesPerfil.tiposNegocio,
+                    seleccionada = perfil.tipoNegocio,
+                    onSeleccion = perfilViewModel::onTipoNegocioChange,
+                    error = perfil.errores.tipoNegocio
+                )
+                CampoTexto(
+                    valor = perfil.empleados,
+                    onValorChange = perfilViewModel::onEmpleadosChange,
+                    etiqueta = "Personas que trabajan en tu negocio",
+                    iconoInicial = Icons.Filled.Groups,
+                    tipoTeclado = KeyboardType.Number,
+                    error = perfil.errores.empleados
+                )
+                // El tamaño se calcula solo con la cantidad de personas
+                if (perfil.tamanoNegocio.isNotEmpty()) {
+                    Text(
+                        text = "Tamaño de tu negocio: ${perfil.tamanoNegocio}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                CampoTexto(
+                    valor = perfil.direccion,
+                    onValorChange = perfilViewModel::onDireccionChange,
+                    etiqueta = "Dirección",
+                    iconoInicial = Icons.Filled.LocationOn,
+                    error = perfil.errores.direccion
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                BotonPrincipal(
+                    texto = "Guardar perfil",
+                    onClick = {
+                        if (perfilViewModel.validarPerfil()) {
+                            // TODO tarjeta 10: guardar el perfil en Room
+                            scope.launch { snackbarHostState.showSnackbar("Datos del perfil correctos") }
+                        } else {
+                            mostrarErrores = true
+                        }
+                    }
+                )
+
+                OutlinedButton(
+                    onClick = onIrAEncuesta,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text("Completar encuesta de intereses")
+                }
+            }
         }
+    }
+
+    if (mostrarErrores) {
+        DialogoErrores(
+            errores = perfil.errores.mensajes(),
+            onCerrar = { mostrarErrores = false }
+        )
     }
 }
 
@@ -74,6 +199,6 @@ fun PerfilScreen(viewModel: MainViewModel) {
 @Composable
 fun PerfilScreenPreview() {
     AppMM_grupo5Theme {
-        PerfilScreen(viewModel = MainViewModel())
+        PerfilScreen(viewModel = MainViewModel(), perfilViewModel = PerfilViewModel())
     }
 }

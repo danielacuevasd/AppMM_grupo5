@@ -14,6 +14,7 @@ import com.example.appmm_grupo5.ui.screens.RegistroScreen
 import com.example.appmm_grupo5.viewmodel.MainViewModel
 import com.example.appmm_grupo5.viewmodel.UsuarioViewModel
 import kotlinx.coroutines.flow.collectLatest
+import com.example.appmm_grupo5.viewmodel.PerfilViewModel
 
 // Graph de navegacion: une cada ruta screen con su correspondiente
 // - NavController: lleva la pila de pantallas y los eventos de navegacion.
@@ -25,6 +26,9 @@ fun AppNavGraph(
 ) {
     // Un solo ViewModel de usuario compartido por Login y Registro
     val usuarioViewModel: UsuarioViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
+    // ViewModel del perfil del negocio y la encuesta
+    val perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
     // Escucha los eventos de navegación que emite el ViewModel y los ejecuta en el NavController
     LaunchedEffect(key1 = Unit) {
@@ -83,7 +87,7 @@ fun AppNavGraph(
             EventosScreen(viewModel = viewModel)
         }
         composable(route = Screen.Perfil.route) {
-            PerfilScreen(viewModel = viewModel)
+            PerfilScreen(viewModel = viewModel, perfilViewModel = perfilViewModel)
         }
     }
 }
