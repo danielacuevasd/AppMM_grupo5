@@ -1,7 +1,11 @@
 package com.example.appmm_grupo5.validation
 
+import com.example.appmm_grupo5.model.EncuestaErrores
+import com.example.appmm_grupo5.model.EncuestaUiState
 import com.example.appmm_grupo5.model.FormularioErrores
 import com.example.appmm_grupo5.model.FormularioUiState
+import com.example.appmm_grupo5.model.PerfilErrores
+import com.example.appmm_grupo5.model.PerfilUiState
 
 // Reglas de validación. Cada función devuelve null si el dato es válido, o el mensaje de error que debe mostrar la pantalla.
 // Aquí no hay nada de interfaz: así se pueden probar sin emulador.
@@ -102,9 +106,45 @@ object Validadores {
         aceptaTerminos = terminos(estado.aceptaTerminos)
     )
 
-    // En el login solo se exige correo válido y clave escrita
+    // En el login solo se exige correo valido y clave escrita
     fun validarLogin(correo: String, clave: String): FormularioErrores = FormularioErrores(
         correo = correo(correo),
         clave = obligatorio(clave, "Ingresa tu clave")
+    )
+
+    fun nombreNegocio(valor: String): String? {
+        val limpio = valor.trim()
+        if (limpio.isEmpty()) return "El nombre del negocio es obligatorio"
+        if (limpio.length < 3) return "El nombre del negocio debe tener al menos 3 letras"
+        if (limpio.length > 60) return "El nombre del negocio no puede superar los 60 caracteres"
+        return null
+    }
+
+    fun direccion(valor: String): String? {
+        val limpio = valor.trim()
+        if (limpio.isEmpty()) return "La dirección es obligatoria"
+        if (limpio.length < 5 || !limpio.any { it.isDigit() }) {
+            return "Escribe la calle y el número, por ejemplo Av. Alemania 123"
+        }
+        return null
+    }
+
+    fun empleados(valor: String): String? =
+        rango(valor, 1, 500, "La cantidad de personas")
+
+    fun intereses(seleccion: Set<String>): String? =
+        if (seleccion.isEmpty()) "Elige al menos un interés" else null
+
+    fun validarPerfil(estado: PerfilUiState): PerfilErrores = PerfilErrores(
+        nombreNegocio = nombreNegocio(estado.nombreNegocio),
+        rutEmpresa = rut(estado.rutEmpresa),
+        tipoNegocio = obligatorio(estado.tipoNegocio, "Elige el tipo de negocio"),
+        empleados = empleados(estado.empleados),
+        direccion = direccion(estado.direccion)
+    )
+
+    fun validarEncuesta(estado: EncuestaUiState): EncuestaErrores = EncuestaErrores(
+        intereses = intereses(estado.intereses),
+        objetivo = obligatorio(estado.objetivo, "Elige qué quieres lograr")
     )
 }
