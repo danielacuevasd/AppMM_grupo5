@@ -9,8 +9,11 @@ data class FormularioErrores(
     val confirmarClave: String? = null,
     val aceptaTerminos: String? = null
 ) {
-    fun hayErrores(): Boolean =
-        listOf(nombre, correo, telefono, clave, confirmarClave, aceptaTerminos).any { it != null }
+    // Lista de los mensajes de error que hay en este momento
+    fun mensajes(): List<String> =
+        listOfNotNull(nombre, correo, telefono, clave, confirmarClave, aceptaTerminos)
+
+    fun hayErrores(): Boolean = mensajes().isNotEmpty()
 }
 
 // Estado completo del formulario de registro: lo que escribe el usuario y sus errores
