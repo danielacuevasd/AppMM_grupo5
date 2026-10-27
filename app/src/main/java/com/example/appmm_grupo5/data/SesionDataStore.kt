@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.map
 
 val Context.sesionDataStore by preferencesDataStore(name = "sesion_usuario")
 
-// Guarda en el teléfono la sesion iniciado
+// Guarda en el telefono la sesion iniciado
 class SesionDataStore(private val context: Context) {
 
     // Datos de la sesion
