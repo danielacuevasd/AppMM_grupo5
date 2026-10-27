@@ -1,5 +1,11 @@
 package com.example.appmm_grupo5.navigation
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.appmm_grupo5.viewmodel.SesionViewModel
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -22,21 +28,26 @@ import com.example.appmm_grupo5.viewmodel.PerfilViewModel
 import com.example.appmm_grupo5.viewmodel.UsuarioViewModel
 import kotlinx.coroutines.flow.collectLatest
 
-// Graph de navegacion: une cada ruta screen con su correspondiente
-// - NavController: lleva la pila de pantallas y los eventos de navegacion.
+// Graph de navegacion une cada ruta screen con su correspondiente
+// - NavController: lleva las pantallas y los eventos de navegacion.
 // - NavHost: muestra la pantalla que corresponde
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
     viewModel: MainViewModel
 ) {
-    // Un solo ViewModel de usuario compartido por Login y Registro
+    // Un solo ViewModel por Login y Registro
     val usuarioViewModel: UsuarioViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
-    // ViewModel del perfil del negocio y la encuesta
+    // ViewModel para el perfil del negocio y la encuesta
     val perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
-    // Escucha los eventos de navegación que emite el ViewModel y los ejecuta en el NavController
+    // ViewModel de la sesion la cual recuerda si hay una sesion guardada
+    val sesionViewModel: SesionViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val sesionActiva by sesionViewModel.sesionActiva.collectAsState()
+    val correoSesion by sesionViewModel.correo.collectAsState()
+
+    // Escucha los eventos que emite el ViewModel y los ejecuta en el NavController
     LaunchedEffect(key1 = Unit) {
         viewModel.navigationEvents.collectLatest { event ->
             when (event) {
@@ -59,9 +70,8 @@ fun AppNavGraph(
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route,
-        // Transiciones entre pantallas (todas duran 300 ms):
+        // Transiciones entre pantallas:
         // al avanzar, la nueva entra desde la derecha y la anterior se desvanece;
-        // al volver, ocurre al revés.
         enterTransition = {
             fadeIn(tween(300)) + slideIntoContainer(
                 AnimatedContentTransitionScope.SlideDirection.Start,
@@ -93,12 +103,18 @@ fun AppNavGraph(
             route = Screen.Splash.route,
             exitTransition = { fadeOut(tween(400)) }
         ) {
-            SplashScreen(
-                onTerminar = {
-                    // TODO tarjeta 6: si hay una sesión guardada, ir a Inicio en vez de Login
-                    viewModel.navigateTo(Screen.Login, popUpTo = Screen.Splash, inclusive = true)
+            // El splash termina su animación, pero antes de salir hay que saber si hay sesión guardada
+            var animacionTerminada by remember { mutableStateOf(false) }
+
+            LaunchedEffect(animacionTerminada, sesionActiva) {
+                if (animacionTerminada && sesionActiva != null) {
+                    // Con sesión guardada se va directo a Inicio; sin sesión, al Login
+                    val destino = if (sesionActiva == true) Screen.Inicio else Screen.Login
+                    viewModel.navigateTo(destino, popUpTo = Screen.Splash, inclusive = true)
                 }
-            )
+            }
+
+            SplashScreen(onTerminar = { animacionTerminada = true })
         }
         composable(
             route = Screen.Login.route,
@@ -107,6 +123,8 @@ fun AppNavGraph(
             LoginScreen(
                 viewModel = usuarioViewModel,
                 onLoginExitoso = {
+                    // Se queda la sesion guardada
+                    sesionViewModel.iniciarSesion(usuarioViewModel.login.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
                 onIrARegistro = { viewModel.navigateTo(Screen.Registro, singleTop = true) }
@@ -116,6 +134,8 @@ fun AppNavGraph(
             RegistroScreen(
                 viewModel = usuarioViewModel,
                 onRegistroExitoso = {
+                    // Despues de registrarse la sesion queda abierta
+                    sesionViewModel.iniciarSesion(usuarioViewModel.registro.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
                 onVolver = { viewModel.navigateBack() }
@@ -138,7 +158,12 @@ fun AppNavGraph(
             PerfilScreen(
                 viewModel = viewModel,
                 perfilViewModel = perfilViewModel,
-                onIrAEncuesta = { viewModel.navigateTo(Screen.Encuesta) }
+                correo = correoSesion,
+                onIrAEncuesta = { viewModel.navigateTo(Screen.Encuesta) },
+                onCerrarSesion = {
+                    sesionViewModel.cerrarSesion()
+                    viewModel.navigateTo(Screen.Login, popUpTo = Screen.Inicio, inclusive = true)
+                }
             )
         }
         composable(route = Screen.Encuesta.route) {
