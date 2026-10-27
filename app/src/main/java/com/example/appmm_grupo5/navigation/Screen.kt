@@ -10,6 +10,7 @@ sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Registro : Screen("registro")
     data object Encuesta : Screen("encuesta")
+    data object Splash : Screen("splash")
 
     //Rutas con argumentos, son objetos con parametros, esto es para el catalogo
     data class Detalle(val contenidoId: String) : Screen("detalle/{contenidoId}") {
