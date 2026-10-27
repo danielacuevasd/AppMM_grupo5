@@ -45,6 +45,7 @@ fun AppNavGraph(
     // ViewModel de la sesion la cual recuerda si hay una sesion guardada
     val sesionViewModel: SesionViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val sesionActiva by sesionViewModel.sesionActiva.collectAsState()
+    val correoSesion by sesionViewModel.correo.collectAsState()
 
     // Escucha los eventos que emite el ViewModel y los ejecuta en el NavController
     LaunchedEffect(key1 = Unit) {
@@ -122,6 +123,8 @@ fun AppNavGraph(
             LoginScreen(
                 viewModel = usuarioViewModel,
                 onLoginExitoso = {
+                    // Se queda la sesion guardada
+                    sesionViewModel.iniciarSesion(usuarioViewModel.login.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
                 onIrARegistro = { viewModel.navigateTo(Screen.Registro, singleTop = true) }
@@ -131,6 +134,8 @@ fun AppNavGraph(
             RegistroScreen(
                 viewModel = usuarioViewModel,
                 onRegistroExitoso = {
+                    // Despues de registrarse la sesion queda abierta
+                    sesionViewModel.iniciarSesion(usuarioViewModel.registro.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
                 onVolver = { viewModel.navigateBack() }
@@ -153,7 +158,12 @@ fun AppNavGraph(
             PerfilScreen(
                 viewModel = viewModel,
                 perfilViewModel = perfilViewModel,
-                onIrAEncuesta = { viewModel.navigateTo(Screen.Encuesta) }
+                correo = correoSesion,
+                onIrAEncuesta = { viewModel.navigateTo(Screen.Encuesta) },
+                onCerrarSesion = {
+                    sesionViewModel.cerrarSesion()
+                    viewModel.navigateTo(Screen.Login, popUpTo = Screen.Inicio, inclusive = true)
+                }
             )
         }
         composable(route = Screen.Encuesta.route) {

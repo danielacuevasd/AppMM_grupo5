@@ -70,7 +70,9 @@ private val itemsBarra = listOf(
 fun PerfilScreen(
     viewModel: MainViewModel,
     perfilViewModel: PerfilViewModel,
-    onIrAEncuesta: () -> Unit = {}
+    correo: String? = null,
+    onIrAEncuesta: () -> Unit = {},
+    onCerrarSesion: () -> Unit = {}
 ) {
     val perfil by perfilViewModel.perfil.collectAsState()
     var mostrarErrores by remember { mutableStateOf(false) }
@@ -123,6 +125,13 @@ fun PerfilScreen(
                     iconoInicial = Icons.Filled.Store,
                     error = perfil.errores.nombreNegocio
                 )
+                if (correo != null) {
+                    Text(
+                        text = "Sesión iniciada como $correo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 CampoTexto(
                     valor = perfil.rutEmpresa,
                     onValorChange = perfilViewModel::onRutEmpresaChange,
@@ -182,6 +191,15 @@ fun PerfilScreen(
                         .height(56.dp)
                 ) {
                     Text("Completar encuesta de intereses")
+                }
+
+                OutlinedButton(
+                    onClick = onCerrarSesion,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text("Cerrar sesión")
                 }
             }
         }
