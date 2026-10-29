@@ -185,13 +185,15 @@ fun AppNavGraph(
                 onCerrarSesion = {
                     sesionViewModel.cerrarSesion()
                     viewModel.navigateTo(Screen.Login, popUpTo = Screen.Inicio, inclusive = true)
-                }
+                },
+                onGuardar = { sesionViewModel.guardarPerfil(it) }
             )
         }
         composable(route = Screen.Encuesta.route) {
             EncuestaScreen(
                 perfilViewModel = perfilViewModel,
-                onVolver = { viewModel.navigateBack() }
+                onVolver = { viewModel.navigateBack() },
+                onGuardar = { sesionViewModel.guardarEncuesta(it) }
             )
         }
     }

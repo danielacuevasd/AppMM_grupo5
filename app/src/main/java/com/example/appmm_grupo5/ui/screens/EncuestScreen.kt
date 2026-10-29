@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.appmm_grupo5.model.EncuestaUiState
 import com.example.appmm_grupo5.model.OpcionesPerfil
 import com.example.appmm_grupo5.ui.components.BotonPrincipal
 import com.example.appmm_grupo5.ui.components.DialogoErrores
@@ -52,7 +53,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun EncuestaScreen(
     perfilViewModel: PerfilViewModel,
-    onVolver: () -> Unit = {}
+    onVolver: () -> Unit = {},
+    onGuardar: (EncuestaUiState) -> Unit = {}
 ) {
     val encuesta by perfilViewModel.encuesta.collectAsState()
     var mostrarErrores by remember { mutableStateOf(false) }
@@ -129,6 +131,7 @@ fun EncuestaScreen(
                     texto = "Guardar encuesta",
                     onClick = {
                         if (perfilViewModel.validarEncuesta()) {
+                            onGuardar(perfilViewModel.encuesta.value)
                             scope.launch { snackbarHostState.showSnackbar("Encuesta completada") }
                         } else {
                             mostrarErrores = true

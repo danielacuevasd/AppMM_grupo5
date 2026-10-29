@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appmm_grupo5.model.OpcionesPerfil
+import com.example.appmm_grupo5.model.PerfilUiState
 import com.example.appmm_grupo5.navigation.Screen
 import com.example.appmm_grupo5.ui.components.BotonPrincipal
 import com.example.appmm_grupo5.ui.components.CampoTexto
@@ -72,7 +73,8 @@ fun PerfilScreen(
     perfilViewModel: PerfilViewModel,
     correo: String? = null,
     onIrAEncuesta: () -> Unit = {},
-    onCerrarSesion: () -> Unit = {}
+    onCerrarSesion: () -> Unit = {},
+    onGuardar: (PerfilUiState) -> Unit = {}
 ) {
     val perfil by perfilViewModel.perfil.collectAsState()
     var mostrarErrores by remember { mutableStateOf(false) }
@@ -176,8 +178,8 @@ fun PerfilScreen(
                     texto = "Guardar perfil",
                     onClick = {
                         if (perfilViewModel.validarPerfil()) {
-                            // TODO tarjeta 10: guardar el perfil en Room
-                            scope.launch { snackbarHostState.showSnackbar("Datos del perfil correctos") }
+                            onGuardar(perfilViewModel.perfil.value)
+                            scope.launch { snackbarHostState.showSnackbar("Perfil guardado") }
                         } else {
                             mostrarErrores = true
                         }
