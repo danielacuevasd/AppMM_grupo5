@@ -19,6 +19,9 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
     private val _sesionActiva = MutableStateFlow<Boolean?>(null)
     val sesionActiva: StateFlow<Boolean?> = _sesionActiva
 
+    private val _usuarioId = MutableStateFlow<Long?>(null)
+    val usuarioId: StateFlow<Long?> = _usuarioId
+
     private val _correo = MutableStateFlow<String?>(null)
     val correo: StateFlow<String?> = _correo
 
@@ -31,14 +34,16 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             // Si nunca se guardó nada, se considera que no hay sesión
             _sesionActiva.value = sesionDataStore.obtenerSesion().first() ?: false
+            _usuarioId.value = sesionDataStore.obtenerUsuarioId().first()
             _correo.value = sesionDataStore.obtenerCorreo().first()
         }
     }
 
-    fun iniciarSesion(correo: String) {
+    fun iniciarSesion(usuarioId: Long, correo: String) {
         viewModelScope.launch {
             // Guardamos en DataStore y actualizamos el flujo
-            sesionDataStore.guardarSesion(correo)
+            sesionDataStore.guardarSesion(usuarioId, correo)
+            _usuarioId.value = usuarioId
             _correo.value = correo
             _sesionActiva.value = true
         }
@@ -47,6 +52,7 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
     fun cerrarSesion() {
         viewModelScope.launch {
             sesionDataStore.cerrarSesion()
+            _usuarioId.value = null
             _correo.value = null
             _sesionActiva.value = false
         }

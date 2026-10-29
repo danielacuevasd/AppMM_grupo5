@@ -124,7 +124,7 @@ fun AppNavGraph(
                 viewModel = usuarioViewModel,
                 onLoginExitoso = {
                     // Se queda la sesion guardada
-                    sesionViewModel.iniciarSesion(usuarioViewModel.login.value.correo)
+                    sesionViewModel.iniciarSesion(0L, usuarioViewModel.login.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
                 onIrARegistro = { viewModel.navigateTo(Screen.Registro, singleTop = true) }
@@ -135,7 +135,7 @@ fun AppNavGraph(
                 viewModel = usuarioViewModel,
                 onRegistroExitoso = {
                     // Despues de registrarse la sesion queda abierta
-                    sesionViewModel.iniciarSesion(usuarioViewModel.registro.value.correo)
+                    sesionViewModel.iniciarSesion(0L, usuarioViewModel.registro.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
                 onVolver = { viewModel.navigateBack() }
