@@ -5,6 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appmm_grupo5.data.AppDatabase
 import com.example.appmm_grupo5.data.SesionDataStore
+import com.example.appmm_grupo5.model.EncuestaUiState
+import com.example.appmm_grupo5.model.PerfilUiState
+import com.example.appmm_grupo5.repository.PerfilRepository
 import com.example.appmm_grupo5.repository.UsuarioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +21,11 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
     private val sesionDataStore = SesionDataStore(application)
 
     private val usuarioRepositorio = UsuarioRepository(AppDatabase.obtener(application).usuarioDao())
+
+    private val perfilRepositorio = PerfilRepository(
+        AppDatabase.obtener(application).perfilNegocioDao(),
+        AppDatabase.obtener(application).encuestaDao()
+    )
 
     // null significa que todavia se está leyendo del telefono
     private val _sesionActiva = MutableStateFlow<Boolean?>(null)
@@ -81,6 +89,29 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
             val usuario = usuarioRepositorio.iniciarSesion(correo, clave)
             if (usuario != null) iniciarSesion(usuario.id, usuario.correo)
             onResultado(usuario != null)
+        }
+    }
+
+    fun guardarPerfil(perfil: PerfilUiState) {
+        val id = _usuarioId.value ?: return
+        if (id <= 0L) return
+        viewModelScope.launch { perfilRepositorio.guardarPerfil(id, perfil) }
+    }
+
+    fun guardarEncuesta(encuesta: EncuestaUiState) {
+        val id = _usuarioId.value ?: return
+        if (id <= 0L) return
+        viewModelScope.launch { perfilRepositorio.guardarEncuesta(id, encuesta) }
+    }
+
+    fun cargarDatosUsuario(
+        usuarioId: Long,
+        onResultado: (PerfilUiState?, EncuestaUiState?) -> Unit
+    ) {
+        viewModelScope.launch {
+            val perfil = perfilRepositorio.cargarPerfil(usuarioId)
+            val encuesta = perfilRepositorio.cargarEncuesta(usuarioId)
+            onResultado(perfil, encuesta)
         }
     }
 }

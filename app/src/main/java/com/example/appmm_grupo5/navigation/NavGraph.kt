@@ -46,6 +46,18 @@ fun AppNavGraph(
     val sesionViewModel: SesionViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val sesionActiva by sesionViewModel.sesionActiva.collectAsState()
     val correoSesion by sesionViewModel.correo.collectAsState()
+    val usuarioId by sesionViewModel.usuarioId.collectAsState()
+
+    LaunchedEffect(usuarioId) {
+        perfilViewModel.reiniciar()
+        val id = usuarioId
+        if (id != null && id > 0L) {
+            sesionViewModel.cargarDatosUsuario(id) { perfil, encuesta ->
+                perfil?.let { perfilViewModel.cargarPerfil(it) }
+                encuesta?.let { perfilViewModel.cargarEncuesta(it) }
+            }
+        }
+    }
 
     // Escucha los eventos que emite el ViewModel y los ejecuta en el NavController
     LaunchedEffect(key1 = Unit) {
