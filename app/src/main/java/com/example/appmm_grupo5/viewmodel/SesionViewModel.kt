@@ -3,7 +3,9 @@ package com.example.appmm_grupo5.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.appmm_grupo5.data.AppDatabase
 import com.example.appmm_grupo5.data.SesionDataStore
+import com.example.appmm_grupo5.repository.UsuarioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -14,6 +16,8 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
 
     // DataStore creado con contexto de aplicacion
     private val sesionDataStore = SesionDataStore(application)
+
+    private val usuarioRepositorio = UsuarioRepository(AppDatabase.obtener(application).usuarioDao())
 
     // null significa que todavia se está leyendo del telefono
     private val _sesionActiva = MutableStateFlow<Boolean?>(null)
@@ -55,6 +59,28 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
             _usuarioId.value = null
             _correo.value = null
             _sesionActiva.value = false
+        }
+    }
+
+    fun registrar(
+        nombre: String,
+        correo: String,
+        telefono: String,
+        clave: String,
+        onResultado: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            val usuario = usuarioRepositorio.registrar(nombre, correo, telefono, clave)
+            if (usuario != null) iniciarSesion(usuario.id, usuario.correo)
+            onResultado(usuario != null)
+        }
+    }
+
+    fun ingresar(correo: String, clave: String, onResultado: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val usuario = usuarioRepositorio.iniciarSesion(correo, clave)
+            if (usuario != null) iniciarSesion(usuario.id, usuario.correo)
+            onResultado(usuario != null)
         }
     }
 }

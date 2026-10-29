@@ -86,4 +86,12 @@ class UsuarioViewModel : ViewModel() {
         _login.update { it.copy(errores = errores) }
         return !errores.hayErrores()
     }
+
+    fun correoYaRegistrado() = _registro.update {
+        it.copy(errores = it.errores.copy(correo = "Este correo ya está registrado"))
+    }
+
+    fun credencialesIncorrectas() = _login.update {
+        it.copy(errores = it.errores.copy(clave = "Correo o clave incorrectos"))
+    }
 }
