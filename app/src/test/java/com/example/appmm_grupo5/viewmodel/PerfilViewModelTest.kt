@@ -1,6 +1,8 @@
 package com.example.appmm_grupo5.viewmodel
 
+import com.example.appmm_grupo5.model.EncuestaUiState
 import com.example.appmm_grupo5.model.OpcionesPerfil
+import com.example.appmm_grupo5.model.PerfilUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -72,5 +74,35 @@ class PerfilViewModelTest {
         vm.onObjetivoChange(OpcionesPerfil.objetivos[1])
         assertTrue(vm.validarEncuesta())
         assertTrue(vm.encuesta.value.recibeNovedades)
+    }
+
+    @Test
+    fun cargar_perfil_guardado_rellena_el_formulario() {
+        val vm = PerfilViewModel()
+        vm.cargarPerfil(PerfilUiState(nombreNegocio = "Pasteleria Dulce Hogar", empleados = "8"))
+
+        assertEquals("Pasteleria Dulce Hogar", vm.perfil.value.nombreNegocio)
+        assertEquals(OpcionesPerfil.tamanosNegocio[1], vm.perfil.value.tamanoNegocio)
+    }
+
+    @Test
+    fun cargar_encuesta_guardada_rellena_la_encuesta() {
+        val vm = PerfilViewModel()
+        vm.cargarEncuesta(EncuestaUiState(intereses = setOf("Galletas"), recibeNovedades = false))
+
+        assertEquals(setOf("Galletas"), vm.encuesta.value.intereses)
+        assertEquals(false, vm.encuesta.value.recibeNovedades)
+    }
+
+    @Test
+    fun reiniciar_deja_los_formularios_vacios() {
+        val vm = PerfilViewModel()
+        vm.cargarPerfil(PerfilUiState(nombreNegocio = "Negocio Uno"))
+        vm.onInteresChange("Horneo", true)
+
+        vm.reiniciar()
+
+        assertEquals("", vm.perfil.value.nombreNegocio)
+        assertTrue(vm.encuesta.value.intereses.isEmpty())
     }
 }
