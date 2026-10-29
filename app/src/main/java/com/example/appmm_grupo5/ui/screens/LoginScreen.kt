@@ -42,7 +42,8 @@ import com.example.appmm_grupo5.viewmodel.UsuarioViewModel
 fun LoginScreen(
     viewModel: UsuarioViewModel,
     onLoginExitoso: () -> Unit,
-    onIrARegistro: () -> Unit
+    onIrARegistro: () -> Unit,
+    onIngresar: ((Boolean) -> Unit) -> Unit = { resultado -> resultado(true) }
 ) {
     val estado by viewModel.login.collectAsState()
     var mostrarDialogo by remember { mutableStateOf(false) }
@@ -92,9 +93,13 @@ fun LoginScreen(
             BotonPrincipal(
                 texto = "Ingresar",
                 onClick = {
-                    // TODO tarjeta 10: comparar correo y clave con los usuarios guardados en Room.
-                    // Por ahora entra cualquier correo y clave con formato válido.
-                    if (viewModel.validarLogin()) onLoginExitoso() else mostrarDialogo = true
+                    if (viewModel.validarLogin()) {
+                        onIngresar { correcto ->
+                            if (correcto) onLoginExitoso() else viewModel.credencialesIncorrectas()
+                        }
+                    } else {
+                        mostrarDialogo = true
+                    }
                 }
             )
             TextButton(onClick = onIrARegistro) {
