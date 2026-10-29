@@ -49,7 +49,8 @@ import kotlinx.coroutines.launch
 fun RegistroScreen(
     viewModel: UsuarioViewModel,
     onRegistroExitoso: () -> Unit,
-    onVolver: () -> Unit
+    onVolver: () -> Unit,
+    onRegistrar: ((Boolean) -> Unit) -> Unit = { resultado -> resultado(true) }
 ) {
     val estado by viewModel.registro.collectAsState()
     var mostrarDialogo by remember { mutableStateOf(false) }
@@ -136,12 +137,17 @@ fun RegistroScreen(
                     texto = "Crear cuenta",
                     habilitado = !exito,
                     onClick = {
-                        // TODO tarjeta 10: guardar el usuario en Room antes de avanzar
                         if (viewModel.validarRegistro()) {
-                            exito = true
-                            scope.launch {
-                                delay(1500)
-                                onRegistroExitoso()
+                            onRegistrar { correcto ->
+                                if (correcto) {
+                                    exito = true
+                                    scope.launch {
+                                        delay(1500)
+                                        onRegistroExitoso()
+                                    }
+                                } else {
+                                    viewModel.correoYaRegistrado()
+                                }
                             }
                         } else {
                             mostrarDialogo = true

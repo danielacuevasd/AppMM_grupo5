@@ -46,6 +46,18 @@ fun AppNavGraph(
     val sesionViewModel: SesionViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val sesionActiva by sesionViewModel.sesionActiva.collectAsState()
     val correoSesion by sesionViewModel.correo.collectAsState()
+    val usuarioId by sesionViewModel.usuarioId.collectAsState()
+
+    LaunchedEffect(usuarioId) {
+        perfilViewModel.reiniciar()
+        val id = usuarioId
+        if (id != null && id > 0L) {
+            sesionViewModel.cargarDatosUsuario(id) { perfil, encuesta ->
+                perfil?.let { perfilViewModel.cargarPerfil(it) }
+                encuesta?.let { perfilViewModel.cargarEncuesta(it) }
+            }
+        }
+    }
 
     // Escucha los eventos que emite el ViewModel y los ejecuta en el NavController
     LaunchedEffect(key1 = Unit) {
@@ -123,22 +135,32 @@ fun AppNavGraph(
             LoginScreen(
                 viewModel = usuarioViewModel,
                 onLoginExitoso = {
-                    // Se queda la sesion guardada
-                    sesionViewModel.iniciarSesion(usuarioViewModel.login.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
-                onIrARegistro = { viewModel.navigateTo(Screen.Registro, singleTop = true) }
+                onIrARegistro = { viewModel.navigateTo(Screen.Registro, singleTop = true) },
+                onIngresar = { resultado ->
+                    val login = usuarioViewModel.login.value
+                    sesionViewModel.ingresar(login.correo, login.clave, resultado)
+                }
             )
         }
         composable(route = Screen.Registro.route) {
             RegistroScreen(
                 viewModel = usuarioViewModel,
                 onRegistroExitoso = {
-                    // Despues de registrarse la sesion queda abierta
-                    sesionViewModel.iniciarSesion(usuarioViewModel.registro.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
-                onVolver = { viewModel.navigateBack() }
+                onVolver = { viewModel.navigateBack() },
+                onRegistrar = { resultado ->
+                    val registro = usuarioViewModel.registro.value
+                    sesionViewModel.registrar(
+                        registro.nombre,
+                        registro.correo,
+                        registro.telefono,
+                        registro.clave,
+                        resultado
+                    )
+                }
             )
         }
         composable(route = Screen.Inicio.route) {
@@ -163,13 +185,15 @@ fun AppNavGraph(
                 onCerrarSesion = {
                     sesionViewModel.cerrarSesion()
                     viewModel.navigateTo(Screen.Login, popUpTo = Screen.Inicio, inclusive = true)
-                }
+                },
+                onGuardar = { sesionViewModel.guardarPerfil(it) }
             )
         }
         composable(route = Screen.Encuesta.route) {
             EncuestaScreen(
                 perfilViewModel = perfilViewModel,
-                onVolver = { viewModel.navigateBack() }
+                onVolver = { viewModel.navigateBack() },
+                onGuardar = { sesionViewModel.guardarEncuesta(it) }
             )
         }
     }

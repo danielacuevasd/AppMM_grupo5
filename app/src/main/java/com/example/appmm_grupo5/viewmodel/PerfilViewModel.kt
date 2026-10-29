@@ -85,4 +85,17 @@ class PerfilViewModel : ViewModel() {
         _encuesta.update { it.copy(errores = errores) }
         return !errores.hayErrores()
     }
+
+    fun cargarPerfil(perfil: PerfilUiState) {
+        _perfil.value = perfil
+    }
+
+    fun cargarEncuesta(encuesta: EncuestaUiState) {
+        _encuesta.value = encuesta
+    }
+
+    fun reiniciar() {
+        _perfil.value = PerfilUiState()
+        _encuesta.value = EncuestaUiState()
+    }
 }
