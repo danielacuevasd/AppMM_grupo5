@@ -123,22 +123,32 @@ fun AppNavGraph(
             LoginScreen(
                 viewModel = usuarioViewModel,
                 onLoginExitoso = {
-                    // Se queda la sesion guardada
-                    sesionViewModel.iniciarSesion(0L, usuarioViewModel.login.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
-                onIrARegistro = { viewModel.navigateTo(Screen.Registro, singleTop = true) }
+                onIrARegistro = { viewModel.navigateTo(Screen.Registro, singleTop = true) },
+                onIngresar = { resultado ->
+                    val login = usuarioViewModel.login.value
+                    sesionViewModel.ingresar(login.correo, login.clave, resultado)
+                }
             )
         }
         composable(route = Screen.Registro.route) {
             RegistroScreen(
                 viewModel = usuarioViewModel,
                 onRegistroExitoso = {
-                    // Despues de registrarse la sesion queda abierta
-                    sesionViewModel.iniciarSesion(0L, usuarioViewModel.registro.value.correo)
                     viewModel.navigateTo(Screen.Inicio, popUpTo = Screen.Login, inclusive = true)
                 },
-                onVolver = { viewModel.navigateBack() }
+                onVolver = { viewModel.navigateBack() },
+                onRegistrar = { resultado ->
+                    val registro = usuarioViewModel.registro.value
+                    sesionViewModel.registrar(
+                        registro.nombre,
+                        registro.correo,
+                        registro.telefono,
+                        registro.clave,
+                        resultado
+                    )
+                }
             )
         }
         composable(route = Screen.Inicio.route) {
