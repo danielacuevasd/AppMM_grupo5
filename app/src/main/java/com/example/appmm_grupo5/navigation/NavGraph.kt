@@ -13,9 +13,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.appmm_grupo5.ui.screens.AprenderScreen
+import com.example.appmm_grupo5.ui.screens.DetalleScreen
 import com.example.appmm_grupo5.ui.screens.EncuestaScreen
 import com.example.appmm_grupo5.ui.screens.EventosScreen
 import com.example.appmm_grupo5.ui.screens.HomeScreenAdaptable
@@ -67,7 +70,9 @@ fun AppNavGraph(
         viewModel.navigationEvents.collectLatest { event ->
             when (event) {
                 is NavigationEvent.NavigateTo -> {
-                    navController.navigate(event.route.route) {
+                    // Las rutas con argumento (Detalle) se arman con su valor real
+                    val ruta = (event.route as? Screen.Detalle)?.buildRoute() ?: event.route.route
+                    navController.navigate(ruta) {
                         event.popUpToRoute?.let { destino ->
                             popUpTo(destino.route) { inclusive = event.inclusive }
                         }
@@ -174,7 +179,23 @@ fun AppNavGraph(
             )
         }
         composable(route = Screen.Aprender.route) {
-            AprenderScreen(viewModel = viewModel, catalogoViewModel = catalogoViewModel)
+            AprenderScreen(
+                viewModel = viewModel,
+                catalogoViewModel = catalogoViewModel,
+                usuarioId = usuarioId,
+                onAbrirContenido = { id -> viewModel.navigateTo(Screen.Detalle(id.toString())) }
+            )
+        }
+        composable(
+            route = Screen.Detalle("").route,   // "detalle/{contenidoId}"
+            arguments = listOf(navArgument("contenidoId") { type = NavType.StringType })
+        ) { entrada ->
+            val contenidoId = entrada.arguments?.getString("contenidoId")?.toLongOrNull()
+            DetalleScreen(
+                contenidoId = contenidoId,
+                usuarioId = usuarioId,
+                onVolver = { viewModel.navigateBack() }
+            )
         }
         composable(route = Screen.Eventos.route) {
             EventosScreen(viewModel = viewModel)

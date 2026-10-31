@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -24,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -41,17 +44,23 @@ import com.example.appmm_grupo5.viewmodel.CatalogoViewModel
 import com.example.appmm_grupo5.viewmodel.MainViewModel
 
 // Pantalla Aprender: catálogo de recetas, videos y cursos con filtros por tipo y categoría.
-// onAbrirContenido recibe el id del contenido tocado (el detalle se conecta en la tarjeta 12).
+// Con el chip "Guardados" se ven solo los favoritos del usuario.
+// onAbrirContenido recibe el id del contenido tocado y abre su detalle.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AprenderScreen(
     viewModel: MainViewModel,
     catalogoViewModel: CatalogoViewModel,
+    usuarioId: Long? = null,
     onAbrirContenido: (Long) -> Unit = {}
 ) {
     val contenidos by catalogoViewModel.contenidos.collectAsState()
     val tipoElegido by catalogoViewModel.tipo.collectAsState()
     val categoriaElegida by catalogoViewModel.categoria.collectAsState()
+    val soloGuardados by catalogoViewModel.soloGuardados.collectAsState()
+
+    // El catálogo necesita saber quién es el usuario para conocer sus favoritos
+    LaunchedEffect(usuarioId) { catalogoViewModel.fijarUsuario(usuarioId) }
 
     Scaffold(
         topBar = {
@@ -74,8 +83,10 @@ fun AprenderScreen(
             contenidos = contenidos,
             tipoElegido = tipoElegido,
             categoriaElegida = categoriaElegida,
+            soloGuardados = soloGuardados,
             onTipo = catalogoViewModel::seleccionarTipo,
             onCategoria = catalogoViewModel::seleccionarCategoria,
+            onSoloGuardados = catalogoViewModel::alternarSoloGuardados,
             onAbrirContenido = onAbrirContenido,
             modifier = Modifier.padding(innerPadding)
         )
@@ -88,13 +99,15 @@ fun AprenderContenido(
     contenidos: List<Contenido>,
     tipoElegido: String?,
     categoriaElegida: String?,
+    soloGuardados: Boolean,
     onTipo: (String?) -> Unit,
     onCategoria: (String?) -> Unit,
+    onSoloGuardados: () -> Unit,
     onAbrirContenido: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        // Filtro por tipo: Todo, Recetas, Cursos, Videos
+        // Filtro por tipo: Todo, Guardados, Recetas, Cursos, Videos
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -105,6 +118,20 @@ fun AprenderContenido(
                     selected = tipoElegido == null,
                     onClick = { onTipo(null) },
                     label = { Text("Todo") }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = soloGuardados,
+                    onClick = onSoloGuardados,
+                    label = { Text("Guardados") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 )
             }
             items(TipoContenido.todos) { tipo ->
@@ -146,7 +173,11 @@ fun AprenderContenido(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No hay contenidos con estos filtros",
+                    text = if (soloGuardados) {
+                        "Todavía no tienes contenidos guardados con estos filtros"
+                    } else {
+                        "No hay contenidos con estos filtros"
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center
                 )
@@ -217,8 +248,10 @@ fun AprenderContenidoPreview() {
             },
             tipoElegido = null,
             categoriaElegida = null,
+            soloGuardados = false,
             onTipo = {},
             onCategoria = {},
+            onSoloGuardados = {},
             onAbrirContenido = {}
         )
     }
