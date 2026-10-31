@@ -44,9 +44,12 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun cargarSesion() {
         viewModelScope.launch {
-            // Si nunca se guardó nada, se considera que no hay sesión
-            _sesionActiva.value = sesionDataStore.obtenerSesion().first() ?: false
-            _usuarioId.value = sesionDataStore.obtenerUsuarioId().first()
+            val activa = sesionDataStore.obtenerSesion().first() ?: false
+            val id = sesionDataStore.obtenerUsuarioId().first()
+            // Una sesión sin usuario válido (guardada por una versión anterior) no sirve:
+            // se trata como si no hubiera sesión y se pide ingresar de nuevo
+            _sesionActiva.value = activa && id != null && id > 0L
+            _usuarioId.value = id
             _correo.value = sesionDataStore.obtenerCorreo().first()
         }
     }
