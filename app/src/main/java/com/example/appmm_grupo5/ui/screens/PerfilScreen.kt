@@ -1,5 +1,21 @@
 package com.example.appmm_grupo5.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import com.example.appmm_grupo5.ui.components.ImagenInteligente
+import java.io.File
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -80,7 +96,35 @@ fun PerfilScreen(
     var mostrarErrores by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val contexto = LocalContext.current
+    val imagenUri by perfilViewModel.imagenUri.collectAsState()
+    var uriCamara by rememberSaveable { mutableStateOf<Uri?>(null) }
 
+    val galeria = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        perfilViewModel.onImagenDeGaleria(uri)
+    }
+
+    val camara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { exito ->
+        perfilViewModel.onImagenDeCamara(exito, uriCamara)
+    }
+
+    fun abrirCamara() {
+        val carpeta = File(contexto.cacheDir, "fotos").apply { mkdirs() }
+        val archivo = File(carpeta, "negocio_${System.currentTimeMillis()}.jpg")
+        val uri = FileProvider.getUriForFile(contexto, "${contexto.packageName}.fileprovider", archivo)
+        uriCamara = uri
+        camara.launch(uri)
+    }
+
+    val permisoCamara = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { concedido ->
+        if (concedido) {
+            abrirCamara()
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Sin permiso de camara no se puede tomar la foto. Puedes elegir una de la galeria")
+            }
+        }
+    }
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -120,6 +164,40 @@ fun PerfilScreen(
                 modifier = Modifier.widthIn(max = 600.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    ImagenInteligente(uri = imagenUri)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { galeria.launch("image/*") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                    ) {
+                        Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Galería")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            val permitido = ContextCompat.checkSelfPermission(
+                                contexto,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (permitido) abrirCamara() else permisoCamara.launch(Manifest.permission.CAMERA)
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                    ) {
+                        Icon(Icons.Filled.PhotoCamera, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Cámara")
+                    }
+                }
                 CampoTexto(
                     valor = perfil.nombreNegocio,
                     onValorChange = perfilViewModel::onNombreNegocioChange,
