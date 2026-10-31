@@ -26,6 +26,7 @@ import com.example.appmm_grupo5.ui.screens.SplashScreen
 import com.example.appmm_grupo5.viewmodel.MainViewModel
 import com.example.appmm_grupo5.viewmodel.PerfilViewModel
 import com.example.appmm_grupo5.viewmodel.UsuarioViewModel
+import com.example.appmm_grupo5.viewmodel.CatalogoViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 // Graph de navegacion une cada ruta screen con su correspondiente
@@ -44,6 +45,8 @@ fun AppNavGraph(
 
     // ViewModel de la sesion la cual recuerda si hay una sesion guardada
     val sesionViewModel: SesionViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    // ViewModel del catálogo (filtros y lista de contenidos)
+    val catalogoViewModel: CatalogoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val sesionActiva by sesionViewModel.sesionActiva.collectAsState()
     val correoSesion by sesionViewModel.correo.collectAsState()
     val usuarioId by sesionViewModel.usuarioId.collectAsState()
@@ -171,7 +174,7 @@ fun AppNavGraph(
             )
         }
         composable(route = Screen.Aprender.route) {
-            AprenderScreen(viewModel = viewModel)
+            AprenderScreen(viewModel = viewModel, catalogoViewModel = catalogoViewModel)
         }
         composable(route = Screen.Eventos.route) {
             EventosScreen(viewModel = viewModel)
