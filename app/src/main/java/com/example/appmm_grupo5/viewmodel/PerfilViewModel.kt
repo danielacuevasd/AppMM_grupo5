@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import android.net.Uri
 
 // Guarda el estado del perfil del negocio y de la encuesta de intereses, ademas de aplicar validaciones.
 class PerfilViewModel : ViewModel() {
@@ -17,6 +18,9 @@ class PerfilViewModel : ViewModel() {
 
     private val _encuesta = MutableStateFlow(EncuestaUiState())
     val encuesta: StateFlow<EncuestaUiState> = _encuesta.asStateFlow()
+
+    private val _imagenUri = MutableStateFlow<Uri?>(null)
+    val imagenUri: StateFlow<Uri?> = _imagenUri.asStateFlow()
 
     // Mientras el usuario escribe se muestra el error en vivo
     // Los errores de campos vacíos aparecen al presionar el boton
@@ -97,5 +101,18 @@ class PerfilViewModel : ViewModel() {
     fun reiniciar() {
         _perfil.value = PerfilUiState()
         _encuesta.value = EncuestaUiState()
+        _imagenUri.value = null
     }
+
+    // Al cancelar la foto de la galeria se conserva la foto anterior
+    fun onImagenDeGaleria(uri: Uri?) {
+        if (uri != null) _imagenUri.value = uri
+    }
+
+    // Si la camara tomo la foto se tira un true, si se cancela se conserva la foto anterior
+    fun onImagenDeCamara(exito: Boolean, uri: Uri?) {
+        if (exito && uri != null) _imagenUri.value = uri
+    }
+
+
 }
