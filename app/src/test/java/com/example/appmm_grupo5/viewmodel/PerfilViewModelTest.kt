@@ -105,4 +105,22 @@ class PerfilViewModelTest {
         assertEquals("", vm.perfil.value.nombreNegocio)
         assertTrue(vm.encuesta.value.intereses.isEmpty())
     }
+
+
+    @Test
+    fun sin_foto_elegida_la_imagen_es_null() {
+        val vm = PerfilViewModel()
+
+        assertNull(vm.imagenUri.value)
+    }
+
+    @Test
+    fun cancelar_la_galeria_o_la_camara_no_cambia_la_imagen() {
+        val vm = PerfilViewModel()
+
+        vm.onImagenDeGaleria(null)
+        vm.onImagenDeCamara(false, null)
+
+        assertNull(vm.imagenUri.value)
+    }
 }
