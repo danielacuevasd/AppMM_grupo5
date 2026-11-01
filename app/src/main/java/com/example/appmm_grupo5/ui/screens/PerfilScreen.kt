@@ -90,7 +90,8 @@ fun PerfilScreen(
     correo: String? = null,
     onIrAEncuesta: () -> Unit = {},
     onCerrarSesion: () -> Unit = {},
-    onGuardar: (PerfilUiState) -> Unit = {}
+    onGuardar: (PerfilUiState) -> Unit = {},
+    onFotoElegida: (Uri) -> Unit = {}
 ) {
     val perfil by perfilViewModel.perfil.collectAsState()
     var mostrarErrores by remember { mutableStateOf(false) }
@@ -101,11 +102,12 @@ fun PerfilScreen(
     var uriCamara by rememberSaveable { mutableStateOf<Uri?>(null) }
 
     val galeria = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        perfilViewModel.onImagenDeGaleria(uri)
+        if (uri != null) onFotoElegida(uri)
     }
 
     val camara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { exito ->
-        perfilViewModel.onImagenDeCamara(exito, uriCamara)
+        val foto = uriCamara
+        if (exito && foto != null) onFotoElegida(foto)
     }
 
     fun abrirCamara() {
