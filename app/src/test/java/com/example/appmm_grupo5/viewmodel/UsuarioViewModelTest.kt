@@ -5,6 +5,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.Assert.assertEquals
 
 class UsuarioViewModelTest {
 
@@ -53,5 +54,20 @@ class UsuarioViewModelTest {
         vm.onLoginCorreoChange("camila@negocio.cl")
         assertFalse(vm.validarLogin())
         assertNotNull(vm.login.value.errores.clave)
+    }
+
+    // Comprueba que al cerrar sesion los campos queden vacios
+    @Test
+    fun reiniciar_formularios_deja_login_y_registro_vacios() {
+        val vm = UsuarioViewModel()
+        vm.onLoginCorreoChange("camila@negocio.cl")
+        vm.onLoginClaveChange("clave1234")
+        vm.onNombreChange("Camila Rojas")
+
+        vm.reiniciarFormularios()
+
+        assertEquals("", vm.login.value.correo)
+        assertEquals("", vm.login.value.clave)
+        assertEquals("", vm.registro.value.nombre)
     }
 }

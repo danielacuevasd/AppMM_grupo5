@@ -208,8 +208,9 @@ fun AppNavGraph(
                 onIrAEncuesta = { viewModel.navigateTo(Screen.Encuesta) },
                 onCerrarSesion = {
                     sesionViewModel.cerrarSesion()
+                    usuarioViewModel.reiniciarFormularios()
                     viewModel.navigateTo(Screen.Login, popUpTo = Screen.Inicio, inclusive = true)
-                },
+                }, //Con este cambio se borra la sesion y se vuelve al login
                 onGuardar = { sesionViewModel.guardarPerfil(it) }
             )
         }
