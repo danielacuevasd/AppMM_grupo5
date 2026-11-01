@@ -46,11 +46,13 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val activa = sesionDataStore.obtenerSesion().first() ?: false
             val id = sesionDataStore.obtenerUsuarioId().first()
-            // Una sesión sin usuario válido (guardada por una versión anterior) no sirve:
-            // se trata como si no hubiera sesión y se pide ingresar de nuevo
-            _sesionActiva.value = activa && id != null && id > 0L
-            _usuarioId.value = id
-            _correo.value = sesionDataStore.obtenerCorreo().first()
+            // Usuario guardado con version anterior ya no sirve
+            val idValido = activa && id != null && id > 0L
+            val usuarioExiste = idValido && usuarioRepositorio.buscarPorId(id!!) != null
+            if (activa && !usuarioExiste) sesionDataStore.cerrarSesion()
+            _sesionActiva.value = usuarioExiste
+            _usuarioId.value = if (usuarioExiste) id else null
+            _correo.value = if (usuarioExiste) sesionDataStore.obtenerCorreo().first() else null
         }
     }
 
