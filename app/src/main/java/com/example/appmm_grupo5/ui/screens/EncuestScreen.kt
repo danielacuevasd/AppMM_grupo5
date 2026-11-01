@@ -37,6 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.example.appmm_grupo5.notificaciones.Notificaciones
 import com.example.appmm_grupo5.model.EncuestaUiState
 import com.example.appmm_grupo5.model.OpcionesPerfil
 import com.example.appmm_grupo5.ui.components.BotonPrincipal
@@ -46,6 +51,7 @@ import com.example.appmm_grupo5.ui.components.OpcionesRadio
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
 import com.example.appmm_grupo5.viewmodel.PerfilViewModel
 import kotlinx.coroutines.launch
+
 
 // Encuesta de intereses con las categorias del cliente y objetivos.
 // Validacion en PerfilViewModel.
@@ -60,6 +66,37 @@ fun EncuestaScreen(
     var mostrarErrores by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val contexto = LocalContext.current
+
+    // Envía la notificación de contenido nuevo según los intereses elegidos
+    fun avisarNovedad() {
+        scope.launch {
+            Notificaciones.avisarContenidoNuevo(contexto, perfilViewModel.encuesta.value.intereses)
+        }
+    }
+
+    // Android 13 o superior exige pedir el permiso de notificaciones
+    val permisoNotificaciones = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            avisarNovedad()
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    "Sin permiso no podremos avisarte de las novedades. Puedes activarlo en Ajustes"
+                )
+            }
+        }
+    }
+
+    fun pedirPermisoYAvisar() {
+        if (Notificaciones.tienePermiso(contexto)) {
+            avisarNovedad()
+        } else {
+            permisoNotificaciones.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -133,6 +170,10 @@ fun EncuestaScreen(
                         if (perfilViewModel.validarEncuesta()) {
                             onGuardar(perfilViewModel.encuesta.value)
                             scope.launch { snackbarHostState.showSnackbar("Encuesta completada") }
+                            // Si el usuario quiere novedades, se le avisa de un contenido para él
+                            if (perfilViewModel.encuesta.value.recibeNovedades) {
+                                pedirPermisoYAvisar()
+                            }
                         } else {
                             mostrarErrores = true
                         }
