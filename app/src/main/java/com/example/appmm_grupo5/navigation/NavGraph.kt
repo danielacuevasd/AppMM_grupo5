@@ -214,7 +214,12 @@ fun AppNavGraph(
                     usuarioViewModel.reiniciarFormularios()
                     viewModel.navigateTo(Screen.Login, popUpTo = Screen.Inicio, inclusive = true)
                 },
-                onGuardar = { sesionViewModel.guardarPerfil(it) }
+                onGuardar = { sesionViewModel.guardarPerfil(it) },
+                onFotoElegida = { origen ->
+                    sesionViewModel.guardarFotoPerfil(origen) { copia ->
+                        perfilViewModel.onImagenDeGaleria(copia)
+                    }
+                }
             )
         }
         composable(route = Screen.Encuesta.route) {
