@@ -27,11 +27,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Store
@@ -39,8 +36,6 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -56,13 +51,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appmm_grupo5.model.OpcionesPerfil
 import com.example.appmm_grupo5.model.PerfilUiState
 import com.example.appmm_grupo5.navigation.Screen
+import com.example.appmm_grupo5.ui.components.BarraNavegacion
 import com.example.appmm_grupo5.ui.components.BotonPrincipal
 import com.example.appmm_grupo5.ui.components.CampoTexto
 import com.example.appmm_grupo5.ui.components.DialogoErrores
@@ -71,15 +66,6 @@ import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
 import com.example.appmm_grupo5.viewmodel.MainViewModel
 import com.example.appmm_grupo5.viewmodel.PerfilViewModel
 import kotlinx.coroutines.launch
-
-private data class ItemBarra(val screen: Screen, val etiqueta: String, val icono: ImageVector)
-
-private val itemsBarra = listOf(
-    ItemBarra(Screen.Inicio, "Inicio", Icons.Filled.Home),
-    ItemBarra(Screen.Aprender, "Aprender", Icons.AutoMirrored.Filled.MenuBook),
-    ItemBarra(Screen.Eventos, "Eventos", Icons.Filled.Event),
-    ItemBarra(Screen.Perfil, "Perfil", Icons.Filled.Person)
-)
 
 // Pantalla de Perfil. No tiene reglas: pide al ViewModel que valide y reaccione al resultado
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,18 +125,10 @@ fun PerfilScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            NavigationBar {
-                itemsBarra.forEach { item ->
-                    NavigationBarItem(
-                        // Esta pantalla es el Perfil, así que ese botón aparece seleccionado
-                        selected = item.screen == Screen.Perfil,
-                        // singleTop evita apilar varias veces la misma pantalla
-                        onClick = { viewModel.navigateTo(item.screen, singleTop = true) },
-                        label = { Text(item.etiqueta) },
-                        icon = { Icon(item.icono, contentDescription = item.etiqueta) }
-                    )
-                }
-            }
+            BarraNavegacion(
+                seleccionada = Screen.Perfil,
+                onIrA = { destino -> viewModel.navigateTo(destino, singleTop = true) }
+            )
         }
     ) { innerPadding ->
         Column(

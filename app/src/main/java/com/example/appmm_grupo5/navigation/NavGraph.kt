@@ -20,7 +20,6 @@ import androidx.navigation.navArgument
 import com.example.appmm_grupo5.ui.screens.AprenderScreen
 import com.example.appmm_grupo5.ui.screens.DetalleScreen
 import com.example.appmm_grupo5.ui.screens.EncuestaScreen
-import com.example.appmm_grupo5.ui.screens.EventosScreen
 import com.example.appmm_grupo5.ui.screens.HomeScreenAdaptable
 import com.example.appmm_grupo5.ui.screens.LoginScreen
 import com.example.appmm_grupo5.ui.screens.PerfilScreen
@@ -177,7 +176,6 @@ fun AppNavGraph(
         composable(route = Screen.Inicio.route) {
             HomeScreenAdaptable(
                 onComenzar = { viewModel.navigateTo(Screen.Aprender) },
-                onVerEventos = { viewModel.navigateTo(Screen.Eventos) },
                 onIrA = { destino -> viewModel.navigateTo(destino, singleTop = true) }
             )
         }
@@ -199,9 +197,6 @@ fun AppNavGraph(
                 usuarioId = usuarioId,
                 onVolver = { viewModel.navigateBack() }
             )
-        }
-        composable(route = Screen.Eventos.route) {
-            EventosScreen(viewModel = viewModel)
         }
         composable(route = Screen.Perfil.route) {
             PerfilScreen(
