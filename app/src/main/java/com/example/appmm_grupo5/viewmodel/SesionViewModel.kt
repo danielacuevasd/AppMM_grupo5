@@ -13,6 +13,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 
 // ViewModel para la sesión del usuario con DataStore
 class SesionViewModel(application: Application) : AndroidViewModel(application) {
@@ -46,11 +50,13 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val activa = sesionDataStore.obtenerSesion().first() ?: false
             val id = sesionDataStore.obtenerUsuarioId().first()
-            // Una sesión sin usuario válido (guardada por una versión anterior) no sirve:
-            // se trata como si no hubiera sesión y se pide ingresar de nuevo
-            _sesionActiva.value = activa && id != null && id > 0L
-            _usuarioId.value = id
-            _correo.value = sesionDataStore.obtenerCorreo().first()
+            // Usuario guardado con version anterior ya no sirve
+            val idValido = activa && id != null && id > 0L
+            val usuarioExiste = idValido && usuarioRepositorio.buscarPorId(id!!) != null
+            if (activa && !usuarioExiste) sesionDataStore.cerrarSesion()
+            _sesionActiva.value = usuarioExiste
+            _usuarioId.value = if (usuarioExiste) id else null
+            _correo.value = if (usuarioExiste) sesionDataStore.obtenerCorreo().first() else null
         }
     }
 
@@ -117,4 +123,44 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
             onResultado(perfil, encuesta)
         }
     }
+    // Guarda la foto de perfil de forma permanente
+    fun guardarFotoPerfil(origen: Uri, onResultado: (Uri) -> Unit) {
+        val id = _usuarioId.value
+        if (id == null || id <= 0L) {
+            onResultado(origen)
+            return
+        }
+        viewModelScope.launch {
+            val copia = withContext(Dispatchers.IO) { copiarFoto(origen, id) }
+            onResultado(copia ?: origen)
+        }
+    }
+    // Carga la foto de perfil desde el dispositivo
+    fun cargarFotoPerfil(usuarioId: Long, onResultado: (Uri?) -> Unit) {
+        viewModelScope.launch {
+            val foto = withContext(Dispatchers.IO) {
+                File(getApplication<Application>().filesDir, "fotos")
+                    .listFiles { archivo -> archivo.name.startsWith("perfil_${usuarioId}_") }
+                    ?.maxByOrNull { it.lastModified() }
+            }
+            onResultado(foto?.let { Uri.fromFile(it) })
+        }
+    }
+    // Copia la foto al directorio de archivos de la aplicacion
+    private fun copiarFoto(origen: Uri, usuarioId: Long): Uri? {
+        return try {
+            val contexto = getApplication<Application>()
+            val carpeta = File(contexto.filesDir, "fotos").apply { mkdirs() }
+            val destino = File(carpeta, "perfil_${usuarioId}_${System.currentTimeMillis()}.jpg")
+            val entrada = contexto.contentResolver.openInputStream(origen) ?: return null
+            entrada.use { lectura -> destino.outputStream().use { escritura -> lectura.copyTo(escritura) } }
+            carpeta.listFiles { archivo ->
+                archivo.name.startsWith("perfil_${usuarioId}_") && archivo != destino
+            }?.forEach { it.delete() }
+            Uri.fromFile(destino)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
 }

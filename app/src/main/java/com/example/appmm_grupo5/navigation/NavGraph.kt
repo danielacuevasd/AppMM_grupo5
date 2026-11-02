@@ -20,7 +20,6 @@ import androidx.navigation.navArgument
 import com.example.appmm_grupo5.ui.screens.AprenderScreen
 import com.example.appmm_grupo5.ui.screens.DetalleScreen
 import com.example.appmm_grupo5.ui.screens.EncuestaScreen
-import com.example.appmm_grupo5.ui.screens.EventosScreen
 import com.example.appmm_grupo5.ui.screens.HomeScreenAdaptable
 import com.example.appmm_grupo5.ui.screens.LoginScreen
 import com.example.appmm_grupo5.ui.screens.PerfilScreen
@@ -61,6 +60,9 @@ fun AppNavGraph(
             sesionViewModel.cargarDatosUsuario(id) { perfil, encuesta ->
                 perfil?.let { perfilViewModel.cargarPerfil(it) }
                 encuesta?.let { perfilViewModel.cargarEncuesta(it) }
+            }
+            sesionViewModel.cargarFotoPerfil(id) { foto ->
+                if (foto != null) perfilViewModel.onImagenDeGaleria(foto)
             }
         }
     }
@@ -174,7 +176,6 @@ fun AppNavGraph(
         composable(route = Screen.Inicio.route) {
             HomeScreenAdaptable(
                 onComenzar = { viewModel.navigateTo(Screen.Aprender) },
-                onVerEventos = { viewModel.navigateTo(Screen.Eventos) },
                 onIrA = { destino -> viewModel.navigateTo(destino, singleTop = true) }
             )
         }
@@ -197,9 +198,6 @@ fun AppNavGraph(
                 onVolver = { viewModel.navigateBack() }
             )
         }
-        composable(route = Screen.Eventos.route) {
-            EventosScreen(viewModel = viewModel)
-        }
         composable(route = Screen.Perfil.route) {
             PerfilScreen(
                 viewModel = viewModel,
@@ -208,9 +206,15 @@ fun AppNavGraph(
                 onIrAEncuesta = { viewModel.navigateTo(Screen.Encuesta) },
                 onCerrarSesion = {
                     sesionViewModel.cerrarSesion()
+                    usuarioViewModel.reiniciarFormularios()
                     viewModel.navigateTo(Screen.Login, popUpTo = Screen.Inicio, inclusive = true)
                 },
-                onGuardar = { sesionViewModel.guardarPerfil(it) }
+                onGuardar = { sesionViewModel.guardarPerfil(it) },
+                onFotoElegida = { origen ->
+                    sesionViewModel.guardarFotoPerfil(origen) { copia ->
+                        perfilViewModel.onImagenDeGaleria(copia)
+                    }
+                }
             )
         }
         composable(route = Screen.Encuesta.route) {

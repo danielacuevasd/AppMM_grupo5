@@ -5,7 +5,6 @@ sealed class Screen(val route: String) {
     // Rutas simples sin argumentos, son un objeto unico
     data object Inicio : Screen("inicio")
     data object Aprender : Screen("aprender")
-    data object Eventos : Screen("eventos")
     data object Perfil : Screen("perfil")
     data object Login : Screen("login")
     data object Registro : Screen("registro")
