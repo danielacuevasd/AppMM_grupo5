@@ -1,103 +1,93 @@
 # App Master Martini - Grupo 5
-Integrantes: Diego Reyes y Daniela Cuevas
 
-Aplicación móvil desarrollada en **Kotlin** y **Jetpack Compose** orientada a la capacitación, aprendizaje y consulta de recetas, cursos y videos para profesionales del sector de pastelería, chocolatería, panadería y heladería (Master Martini).
+**Integrantes:** Diego Reyes y Daniela Cuevas
+**Asignatura:** Desarrollo de Aplicaciones Móviles (DSY1105) · Ingeniería en Informática · Duoc UC
 
-Este proyecto forma parte de la asignatura **Desarrollo de Aplicaciones Móviles** (4º semestre, Ingeniería en Informática, DUOC UC).
+Aplicación móvil en **Kotlin** y **Jetpack Compose** para el caso de **Master Martini Chile SPA**: una plataforma de contenidos técnicos (recetas, videos y cursos) para emprendedores y profesionales de pastelería, chocolatería, panadería y heladería.
 
----
-
-## Descripción del Proyecto
-
-**App MasterMartini** es una plataforma interactiva diseñada para emprendedores y profesionales del rubro gastronómico. Permite explorar un catálogo diverso de contenido educativo, gestionar un perfil comercial, guardar recetas y cursos favoritos, realizar encuestas sobre hábitos del negocio y recibir notificaciones informativas.
-
-La interfaz está construida completamente con **Jetpack Compose (Material 3)** e incorpora diseño adaptable (Responsive UI) para garantizar una experiencia de usuario fluida en teléfonos, plegables y tablets.
+Es un **MVP académico**: todos los datos y contenidos son ficticios.
 
 ---
 
-## Características Principales
+## Funcionalidades
 
-1. **Gestión de Usuarios y Sesiones:**
-   - Registro e Inicio de Sesión con validaciones en tiempo real (correo, RUT, contraseña).
-   - Encriptación/hashing seguro de contraseñas.
-   - Persistencia de sesión mediante **Preferences DataStore** para mantener al usuario autenticado.
+1. **Sesión de usuario:** registro e ingreso con validación por campo en tiempo real (nombre, correo, celular y clave). La clave se guarda como hash SHA-256 y la sesión persiste con DataStore. Si la sesión guardada apunta a un usuario que ya no existe, se cierra.
+2. **Perfil del negocio:** nombre, RUT de la empresa (con dígito verificador), tipo de negocio, cantidad de personas y dirección. Foto de perfil desde la cámara o la galería, guardada en el dispositivo.
+3. **Encuesta de intereses:** intereses, objetivo y preferencia de recibir novedades.
+4. **Catálogo (pantalla Aprender):** recetas, cursos y videos con filtros por tipo y por categoría, y un filtro "Guardados".
+5. **Detalle de contenido:** tipo, categoría, duración, nivel y descripción, con opción de guardar o quitar de favoritos (se guardan por usuario en Room).
+6. **Notificaciones locales:** al guardar la encuesta con "Recibir novedades" activo, la app pide el permiso y avisa de un contenido según los intereses elegidos.
+7. **Diseño adaptable y animaciones:** tres disposiciones de la Home (teléfono, tablet mediana y expandida) con `WindowSizeClass`, barra de navegación inferior en las pantallas principales (Inicio, Aprender y Perfil), y animaciones en el splash, las transiciones, los errores de los campos, el botón principal y la confirmación del registro.
 
-2. **Catálogo de Contenidos:**
-   - Exploración de Recetas, Cursos y Videos educativos.
-   - Filtrado dinámico por categorías (Galletas, Chocolatería, Masas de hoja, Pastelería, Heladería, Horneo, Empanadas, Bollería).
-   - Buscador e indicadores de nivel de dificultad y duración.
+## Recursos nativos
 
-3. **Detalle e Interacción:**
-   - Vista en detalle con información paso a paso de cada preparación o curso.
-   - Marcar/desmarcar elementos como **Favoritos**, sincronizados con la base de datos local.
-
-4. **Perfil de Negocio y Encuesta:**
-   - Configuración de datos comerciales (Nombre del negocio, rubro, dirección, etc.).
-   - Encuesta de hábitos y preferencias del local.
-   - Selección de foto de perfil desde la Galería o Cámara usando `FileProvider`.
-
-5. **Diseño Adaptable (Responsive Layout):**
-   - Interfaz responsive según el tamaño de pantalla (Compacta, Mediana y Expandida) utilizando `WindowSizeClass`.
-
-6. **Notificaciones Locales:**
-   - Canales de notificaciones para interacciones y avisos dentro de la aplicación.
+- **Cámara** (permiso `CAMERA`, con `FileProvider`) y **galería** de fotos.
+- **Notificaciones locales** (permiso `POST_NOTIFICATIONS` en Android 13 o superior).
 
 ---
 
-## Tecnologías Utilizadas
+## Tecnologías
 
-- **Lenguaje:** [Kotlin](https://kotlinlang.org/) (JVM 11)
-- **UI Framework:** [Jetpack Compose](https://developer.android.com/jetpack/compose) con **Material Design 3**
-- **Arquitectura:** MVVM (Model-View-ViewModel) + Clean Architecture orientada a componentes.
-- **Navegación:** Jetpack Navigation Compose con transiciones animadas.
-- **Base de Datos Local:** [Room Database](https://developer.android.com/training/data-storage/room) con **KSP** (Kotlin Symbol Processing).
-- **Almacenamiento Clave-Valor:** [Jetpack DataStore (Preferences)](https://developer.android.com/topic/libraries/architecture/datastore)
-- **Manejo Asíncrono:** Kotlin Coroutines & StateFlow
-- **Pruebas (Testing):** JUnit 4, Espresso y Compose Testing framework.
+- Kotlin 2.0.21 y Jetpack Compose con Material 3 (BOM 2024.09.00)
+- Arquitectura MVVM con repositorios
+- Navigation Compose 2.8.5, con transiciones animadas
+- Room 2.6.1 (con KSP) y DataStore Preferences 1.1.1
+- Corrutinas y StateFlow
+- Pruebas: JUnit 4 (más de 70 pruebas unitarias) y una prueba instrumentada de la base de datos
 
----
+## Flujo de datos
 
-## Estructura del Código
+Pantalla → ViewModel → Repositorio → DAO → Room. Las pantallas no contienen reglas: piden al ViewModel que valide y reaccionan al estado. Las reglas de validación están en `validation/`.
+
+## Estructura del código
 
 ```text
 app/src/main/java/com/example/appmm_grupo5/
-├── data/           # Base de datos Room (DAOs, AppDatabase, SesionDataStore, DatosEjemplo)
-├── model/          # Modelos de datos (Usuario, Contenido, Favorito, PerfilNegocio, etc.)
-├── navigation/     # Grafo de navegación (NavGraph, Screen, NavigationEvent)
-├── notificaciones/ # Helper y canales para notificaciones del sistema
-├── repository/     # Repositorios que unifican las fuentes de datos (Room / DataStore)
+├── data/           # Room (DAOs, AppDatabase, DatosEjemplo), SesionDataStore, Seguridad
+├── model/          # Entidades y estados de interfaz
+├── navigation/     # NavGraph, Screen, NavigationEvent
+├── notificaciones/ # Canal y envío de notificaciones
+├── repository/     # Repositorios
 ├── ui/
-│   ├── components/ # Componentes reutilizables de UI (Botones, Campos de Texto, Diálogos, etc.)
-│   ├── screens/    # Pantallas principales (Splash, Login, Registro, Home, Aprender, Detalle, Perfil, Encuesta)
-│   ├── theme/      # Configuración del tema Material 3 (Colores, Tipografía, Tema)
-│   └── utils/      # Utilidades de UI (WindowSizeUtils)
-├── validation/     # Lógica de validación de formularios (RUT, Email, Contraseñas)
-└── viewmodel/      # ViewModels (MainViewModel, SesionViewModel, UsuarioViewModel, CatalogoViewModel, PerfilViewModel)
+│   ├── components/ # Componentes reutilizables (campos, botones, barra de navegación, etc.)
+│   ├── screens/    # Splash, Login, Registro, Home, Aprender, Detalle, Perfil, Encuesta
+│   ├── theme/      # Colores, tipografía y tema
+│   └── utils/      # Utilidades de tamaño de pantalla
+├── validation/     # Reglas de validación (correo, celular, RUT, clave, etc.)
+└── viewmodel/      # ViewModels
 ```
 
 ---
 
-## Requisitos de Entorno y Ejecución
+## Cómo ejecutar
 
-### Requisitos Previos
-- **Android Studio** (Ladybug 2024.2.1 o superior recomendado)
-- **JDK:** Java 11
-- **Android SDK:**
-  - `compileSdk`: 36
-  - `minSdk`: 24 (Android 7.0 Nougat)
-  - `targetSdk`: 36
+**Requisitos:** Android Studio reciente (compatible con AGP 8.13), JDK 17 o superior (sirve el JDK integrado de Android Studio), `compileSdk` 36, `minSdk` 24 y `targetSdk` 36. Las notificaciones se prueban mejor en Android 13 o superior.
 
-### Pasos para Ejecutar
+1. Abre la carpeta raíz del proyecto con **Open** en Android Studio.
+2. Espera la sincronización de Gradle (**Sync Project with Gradle Files**).
+3. Elige un emulador o un dispositivo y pulsa **Run** (▶) con la configuración `app`.
 
-1. **Clonar o abrir el proyecto:**
-   Abre Android Studio y selecciona `Open` eligiendo la carpeta raíz del proyecto.
+No hay usuarios precargados: en la pantalla de Login usa **Regístrate** para crear una cuenta.
 
-2. **Sincronizar Gradle:**
-   Espera a que Android Studio descargue las dependencias y sincronice el proyecto (`Sync Project with Gradle Files`).
+**Recorrido sugerido:** crear cuenta → completar el perfil y la encuesta (activar "Recibir novedades" para ver la notificación) → explorar el catálogo y usar los filtros → abrir un contenido y guardarlo como favorito → ver "Guardados" → cambiar la foto de perfil → cerrar sesión.
 
-3. **Ejecutar la aplicación:**
-   - Selecciona un emulador o un dispositivo físico conectado vía ADB.
-   - Haz clic en el botón **Run** ($\triangleright$) en la barra superior o presiona `Shift + F10`.
+## Pruebas
 
+```bash
+./gradlew :app:testDebugUnitTest          # pruebas unitarias
+./gradlew :app:connectedDebugAndroidTest  # prueba de la base de datos (con emulador encendido)
+```
 
+---
 
+## Decisiones y límites del MVP
+
+- Los datos y contenidos son ficticios y no hay servidor.
+- La clave se guarda con SHA-256 sin sal; en un producto real se usaría un algoritmo para claves (bcrypt o Argon2).
+- La notificación es local y de demostración: en un producto real saldría de un servidor o de una tarea programada.
+- Mientras se desarrolla, si cambia el esquema de Room la base se recrea (`fallbackToDestructiveMigration`).
+- **Mejoras futuras:** eventos e inscripción, panel del equipo, accesibilidad ajustable, GPS y "Mis creaciones".
+
+## Flujo de trabajo
+
+GitHub con `main` estable, `develop` de integración y ramas `feature/*` con Pull Requests revisados por el otro integrante. Tareas y responsables en un tablero de Trello.
