@@ -57,9 +57,11 @@ import androidx.compose.ui.unit.dp
 import com.example.appmm_grupo5.model.OpcionesPerfil
 import com.example.appmm_grupo5.model.PerfilUiState
 import com.example.appmm_grupo5.navigation.Screen
+import com.example.appmm_grupo5.repository.ResultadoUsuario
 import com.example.appmm_grupo5.ui.components.BarraNavegacion
 import com.example.appmm_grupo5.ui.components.BotonPrincipal
 import com.example.appmm_grupo5.ui.components.CampoTexto
+import com.example.appmm_grupo5.ui.components.CuentaUsuario
 import com.example.appmm_grupo5.ui.components.DialogoErrores
 import com.example.appmm_grupo5.ui.components.OpcionesRadio
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
@@ -77,7 +79,11 @@ fun PerfilScreen(
     onIrAEncuesta: () -> Unit = {},
     onCerrarSesion: () -> Unit = {},
     onGuardar: (PerfilUiState) -> Unit = {},
-    onFotoElegida: (Uri) -> Unit = {}
+    onFotoElegida: (Uri) -> Unit = {},
+    nombreUsuario: String = "",
+    telefonoUsuario: String = "",
+    onActualizarCuenta: (String, String, String?, (ResultadoUsuario) -> Unit) -> Unit = { _, _, _, _ -> },
+    onEliminarCuenta: ((ResultadoUsuario) -> Unit) -> Unit = {}
 ) {
     val perfil by perfilViewModel.perfil.collectAsState()
     var mostrarErrores by remember { mutableStateOf(false) }
@@ -261,6 +267,15 @@ fun PerfilScreen(
                 ) {
                     Text("Cerrar sesión")
                 }
+
+                // Editar y eliminar la cuenta (se guarda en ms-usuarios)
+                CuentaUsuario(
+                    nombre = nombreUsuario,
+                    telefono = telefonoUsuario,
+                    onActualizar = onActualizarCuenta,
+                    onEliminar = onEliminarCuenta,
+                    onMensaje = { mensaje -> scope.launch { snackbarHostState.showSnackbar(mensaje) } }
+                )
             }
         }
     }

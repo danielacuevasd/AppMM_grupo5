@@ -8,6 +8,7 @@ import com.example.appmm_grupo5.data.AppDatabase
 import com.example.appmm_grupo5.data.SesionDataStore
 import com.example.appmm_grupo5.model.EncuestaUiState
 import com.example.appmm_grupo5.model.PerfilUiState
+import com.example.appmm_grupo5.model.Usuario
 import com.example.appmm_grupo5.network.RetrofitClient
 import com.example.appmm_grupo5.repository.PerfilRepository
 import com.example.appmm_grupo5.repository.ResultadoUsuario
@@ -45,6 +46,10 @@ class SesionViewModel @JvmOverloads constructor(
     private val _correo = MutableStateFlow<String?>(null)
     val correo: StateFlow<String?> = _correo
 
+    // Datos del usuario que vienen del servidor (nombre y teléfono para editar la cuenta)
+    private val _usuarioActual = MutableStateFlow<Usuario?>(null)
+    val usuarioActual: StateFlow<Usuario?> = _usuarioActual
+
     init {
         // Al iniciar el ViewModel se carga la sesion desde DataStore
         cargarSesion()
@@ -63,6 +68,7 @@ class SesionViewModel @JvmOverloads constructor(
             _sesionActiva.value = sesionValida
             _usuarioId.value = if (sesionValida) id else null
             _correo.value = if (sesionValida) sesionDataStore.obtenerCorreo().first() else null
+            if (resultado is ResultadoUsuario.Exito) _usuarioActual.value = resultado.usuario
         }
     }
 
@@ -81,6 +87,7 @@ class SesionViewModel @JvmOverloads constructor(
             sesionDataStore.cerrarSesion()
             _usuarioId.value = null
             _correo.value = null
+            _usuarioActual.value = null
             _sesionActiva.value = false
         }
     }
@@ -95,6 +102,7 @@ class SesionViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val resultado = usuarioRepositorio.registrar(nombre, correo, telefono, clave)
             if (resultado is ResultadoUsuario.Exito) {
+                _usuarioActual.value = resultado.usuario
                 iniciarSesion(resultado.usuario.id, resultado.usuario.correo)
             }
             onResultado(resultado)
@@ -105,8 +113,42 @@ class SesionViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val resultado = usuarioRepositorio.iniciarSesion(correo, clave)
             if (resultado is ResultadoUsuario.Exito) {
+                _usuarioActual.value = resultado.usuario
                 iniciarSesion(resultado.usuario.id, resultado.usuario.correo)
             }
+            onResultado(resultado)
+        }
+    }
+
+    // Edita nombre, teléfono y (opcionalmente) la clave de la cuenta
+    fun actualizarCuenta(
+        nombre: String,
+        telefono: String,
+        clave: String?,
+        onResultado: (ResultadoUsuario) -> Unit
+    ) {
+        val id = _usuarioId.value
+        if (id == null || id <= 0L) {
+            onResultado(ResultadoUsuario.NoEncontrado)
+            return
+        }
+        viewModelScope.launch {
+            val resultado = usuarioRepositorio.actualizar(id, nombre, telefono, clave)
+            if (resultado is ResultadoUsuario.Exito) _usuarioActual.value = resultado.usuario
+            onResultado(resultado)
+        }
+    }
+
+    // Borra la cuenta en el servidor y cierra la sesión del teléfono
+    fun eliminarCuenta(onResultado: (ResultadoUsuario) -> Unit) {
+        val id = _usuarioId.value
+        if (id == null || id <= 0L) {
+            onResultado(ResultadoUsuario.NoEncontrado)
+            return
+        }
+        viewModelScope.launch {
+            val resultado = usuarioRepositorio.eliminar(id)
+            if (resultado is ResultadoUsuario.Eliminado) cerrarSesion()
             onResultado(resultado)
         }
     }
