@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appmm_grupo5.R
+import com.example.appmm_grupo5.model.Usuario
+import com.example.appmm_grupo5.repository.ResultadoUsuario
 import com.example.appmm_grupo5.ui.components.BotonPrincipal
 import com.example.appmm_grupo5.ui.components.CampoTexto
 import com.example.appmm_grupo5.ui.components.DialogoErrores
@@ -43,7 +45,8 @@ fun LoginScreen(
     viewModel: UsuarioViewModel,
     onLoginExitoso: () -> Unit,
     onIrARegistro: () -> Unit,
-    onIngresar: ((Boolean) -> Unit) -> Unit = { resultado -> resultado(true) }
+    onIngresar: ((ResultadoUsuario) -> Unit) -> Unit =
+        { resultado -> resultado(ResultadoUsuario.Exito(Usuario(0, "", "", ""))) }
 ) {
     val estado by viewModel.login.collectAsState()
     var mostrarDialogo by remember { mutableStateOf(false) }
@@ -94,8 +97,12 @@ fun LoginScreen(
                 texto = "Ingresar",
                 onClick = {
                     if (viewModel.validarLogin()) {
-                        onIngresar { correcto ->
-                            if (correcto) onLoginExitoso() else viewModel.credencialesIncorrectas()
+                        onIngresar { resultado ->
+                            when (resultado) {
+                                is ResultadoUsuario.Exito -> onLoginExitoso()
+                                ResultadoUsuario.CredencialesIncorrectas -> viewModel.credencialesIncorrectas()
+                                else -> viewModel.errorDeConexionLogin()
+                            }
                         }
                     } else {
                         mostrarDialogo = true

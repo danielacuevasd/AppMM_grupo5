@@ -1,20 +1,9 @@
 package com.example.appmm_grupo5.model
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
-@Entity(
-    tableName = "perfiles_negocio",
-    foreignKeys = [
-        ForeignKey(
-            entity = Usuario::class,
-            parentColumns = ["id"],
-            childColumns = ["usuarioId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
-)
+@Entity(tableName = "perfiles_negocio")
 data class PerfilNegocio(
     @PrimaryKey
     val usuarioId: Long,

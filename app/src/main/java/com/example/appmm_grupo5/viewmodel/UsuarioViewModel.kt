@@ -99,4 +99,12 @@ class UsuarioViewModel : ViewModel() {
     fun credencialesIncorrectas() = _login.update {
         it.copy(errores = it.errores.copy(clave = "Correo o clave incorrectos"))
     }
+
+    fun errorDeConexionRegistro() = _registro.update {
+        it.copy(errores = it.errores.copy(correo = "No se pudo conectar con el servidor"))
+    }
+
+    fun errorDeConexionLogin() = _login.update {
+        it.copy(errores = it.errores.copy(clave = "No se pudo conectar con el servidor"))
+    }
 }

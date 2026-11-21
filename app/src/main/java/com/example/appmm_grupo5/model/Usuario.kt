@@ -1,18 +1,9 @@
 package com.example.appmm_grupo5.model
 
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
-
-@Entity(
-    tableName = "usuarios",
-    indices = [Index(value = ["correo"], unique = true)]
-)
+// Usuario que viene de ms-usuarios (ya no se guarda en Room)
 data class Usuario(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    val id: Long,
     val nombre: String,
     val correo: String,
-    val telefono: String,
-    val claveHash: String
+    val telefono: String
 )
