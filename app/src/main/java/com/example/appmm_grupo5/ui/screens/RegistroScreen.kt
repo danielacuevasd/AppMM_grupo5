@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.appmm_grupo5.model.Usuario
+import com.example.appmm_grupo5.repository.ResultadoUsuario
 import com.example.appmm_grupo5.ui.components.AceptarTerminos
 import com.example.appmm_grupo5.ui.components.BotonPrincipal
 import com.example.appmm_grupo5.ui.components.CampoTexto
@@ -50,7 +52,8 @@ fun RegistroScreen(
     viewModel: UsuarioViewModel,
     onRegistroExitoso: () -> Unit,
     onVolver: () -> Unit,
-    onRegistrar: ((Boolean) -> Unit) -> Unit = { resultado -> resultado(true) }
+    onRegistrar: ((ResultadoUsuario) -> Unit) -> Unit =
+        { resultado -> resultado(ResultadoUsuario.Exito(Usuario(0, "", "", ""))) }
 ) {
     val estado by viewModel.registro.collectAsState()
     var mostrarDialogo by remember { mutableStateOf(false) }
@@ -138,15 +141,17 @@ fun RegistroScreen(
                     habilitado = !exito,
                     onClick = {
                         if (viewModel.validarRegistro()) {
-                            onRegistrar { correcto ->
-                                if (correcto) {
-                                    exito = true
-                                    scope.launch {
-                                        delay(1500)
-                                        onRegistroExitoso()
+                            onRegistrar { resultado ->
+                                when (resultado) {
+                                    is ResultadoUsuario.Exito -> {
+                                        exito = true
+                                        scope.launch {
+                                            delay(1500)
+                                            onRegistroExitoso()
+                                        }
                                     }
-                                } else {
-                                    viewModel.correoYaRegistrado()
+                                    ResultadoUsuario.CorreoRepetido -> viewModel.correoYaRegistrado()
+                                    else -> viewModel.errorDeConexionRegistro()
                                 }
                             }
                         } else {

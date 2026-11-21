@@ -1,30 +1,34 @@
 package com.example.appmm_grupo5.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appmm_grupo5.data.AppDatabase
 import com.example.appmm_grupo5.data.SesionDataStore
 import com.example.appmm_grupo5.model.EncuestaUiState
 import com.example.appmm_grupo5.model.PerfilUiState
+import com.example.appmm_grupo5.network.RetrofitClient
 import com.example.appmm_grupo5.repository.PerfilRepository
+import com.example.appmm_grupo5.repository.ResultadoUsuario
 import com.example.appmm_grupo5.repository.UsuarioRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import android.net.Uri
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-// ViewModel para la sesión del usuario con DataStore
-class SesionViewModel(application: Application) : AndroidViewModel(application) {
+// ViewModel para la sesión del usuario con DataStore.
+// El usuario vive en el microservicio ms-usuarios; el perfil y la encuesta siguen en Room.
+class SesionViewModel @JvmOverloads constructor(
+    application: Application,
+    private val usuarioRepositorio: UsuarioRepository = UsuarioRepository(RetrofitClient.usuarioApi)
+) : AndroidViewModel(application) {
 
     // DataStore creado con contexto de aplicacion
     private val sesionDataStore = SesionDataStore(application)
-
-    private val usuarioRepositorio = UsuarioRepository(AppDatabase.obtener(application).usuarioDao())
 
     private val perfilRepositorio = PerfilRepository(
         AppDatabase.obtener(application).perfilNegocioDao(),
@@ -50,13 +54,15 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val activa = sesionDataStore.obtenerSesion().first() ?: false
             val id = sesionDataStore.obtenerUsuarioId().first()
-            // Usuario guardado con version anterior ya no sirve
             val idValido = activa && id != null && id > 0L
-            val usuarioExiste = idValido && usuarioRepositorio.buscarPorId(id!!) != null
-            if (activa && !usuarioExiste) sesionDataStore.cerrarSesion()
-            _sesionActiva.value = usuarioExiste
-            _usuarioId.value = if (usuarioExiste) id else null
-            _correo.value = if (usuarioExiste) sesionDataStore.obtenerCorreo().first() else null
+            // Solo se cierra la sesión si el servidor dice que el usuario no existe.
+            // Si no hay conexión, se mantiene la sesión guardada.
+            val resultado = if (idValido) usuarioRepositorio.buscarPorId(id!!) else null
+            val sesionValida = idValido && resultado !is ResultadoUsuario.NoEncontrado
+            if (activa && !sesionValida) sesionDataStore.cerrarSesion()
+            _sesionActiva.value = sesionValida
+            _usuarioId.value = if (sesionValida) id else null
+            _correo.value = if (sesionValida) sesionDataStore.obtenerCorreo().first() else null
         }
     }
 
@@ -84,20 +90,24 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
         correo: String,
         telefono: String,
         clave: String,
-        onResultado: (Boolean) -> Unit
+        onResultado: (ResultadoUsuario) -> Unit
     ) {
         viewModelScope.launch {
-            val usuario = usuarioRepositorio.registrar(nombre, correo, telefono, clave)
-            if (usuario != null) iniciarSesion(usuario.id, usuario.correo)
-            onResultado(usuario != null)
+            val resultado = usuarioRepositorio.registrar(nombre, correo, telefono, clave)
+            if (resultado is ResultadoUsuario.Exito) {
+                iniciarSesion(resultado.usuario.id, resultado.usuario.correo)
+            }
+            onResultado(resultado)
         }
     }
 
-    fun ingresar(correo: String, clave: String, onResultado: (Boolean) -> Unit) {
+    fun ingresar(correo: String, clave: String, onResultado: (ResultadoUsuario) -> Unit) {
         viewModelScope.launch {
-            val usuario = usuarioRepositorio.iniciarSesion(correo, clave)
-            if (usuario != null) iniciarSesion(usuario.id, usuario.correo)
-            onResultado(usuario != null)
+            val resultado = usuarioRepositorio.iniciarSesion(correo, clave)
+            if (resultado is ResultadoUsuario.Exito) {
+                iniciarSesion(resultado.usuario.id, resultado.usuario.correo)
+            }
+            onResultado(resultado)
         }
     }
 
@@ -123,6 +133,7 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
             onResultado(perfil, encuesta)
         }
     }
+
     // Guarda la foto de perfil de forma permanente
     fun guardarFotoPerfil(origen: Uri, onResultado: (Uri) -> Unit) {
         val id = _usuarioId.value
@@ -135,6 +146,7 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
             onResultado(copia ?: origen)
         }
     }
+
     // Carga la foto de perfil desde el dispositivo
     fun cargarFotoPerfil(usuarioId: Long, onResultado: (Uri?) -> Unit) {
         viewModelScope.launch {
@@ -146,6 +158,7 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
             onResultado(foto?.let { Uri.fromFile(it) })
         }
     }
+
     // Copia la foto al directorio de archivos de la aplicacion
     private fun copiarFoto(origen: Uri, usuarioId: Long): Uri? {
         return try {
@@ -162,5 +175,4 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
             null
         }
     }
-
 }

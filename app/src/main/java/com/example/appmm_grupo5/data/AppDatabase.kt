@@ -8,15 +8,13 @@ import com.example.appmm_grupo5.model.Contenido
 import com.example.appmm_grupo5.model.Encuesta
 import com.example.appmm_grupo5.model.Favorito
 import com.example.appmm_grupo5.model.PerfilNegocio
-import com.example.appmm_grupo5.model.Usuario
 
 @Database(
-    entities = [Usuario::class, PerfilNegocio::class, Encuesta::class, Contenido::class, Favorito::class],
-    version = 1,
+    entities = [PerfilNegocio::class, Encuesta::class, Contenido::class, Favorito::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun usuarioDao(): UsuarioDao
     abstract fun perfilNegocioDao(): PerfilNegocioDao
     abstract fun encuestaDao(): EncuestaDao
     abstract fun contenidoDao(): ContenidoDao
