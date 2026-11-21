@@ -89,4 +89,29 @@ class UsuarioRepositoryTest {
         coEvery { api.obtener(any()) } returns error(500)
         assertEquals(ResultadoUsuario.ErrorServidor, repositorio.buscarPorId(1L))
     }
+
+    @Test
+    fun actualizar_correcto_devuelve_exito() = runTest {
+        coEvery { api.actualizar(1L, any()) } returns Response.success(respuesta)
+        val resultado = repositorio.actualizar(1L, " Camila ", "+56912345678", null)
+        assertTrue(resultado is ResultadoUsuario.Exito)
+    }
+
+    @Test
+    fun actualizar_usuario_inexistente_devuelve_NoEncontrado() = runTest {
+        coEvery { api.actualizar(any(), any()) } returns error(404)
+        assertEquals(ResultadoUsuario.NoEncontrado, repositorio.actualizar(9L, "Camila", "+56912345678", null))
+    }
+
+    @Test
+    fun eliminar_correcto_devuelve_Eliminado() = runTest {
+        coEvery { api.eliminar(1L) } returns Response.success(204, Unit)
+        assertEquals(ResultadoUsuario.Eliminado, repositorio.eliminar(1L))
+    }
+
+    @Test
+    fun eliminar_sin_conexion_devuelve_ErrorRed() = runTest {
+        coEvery { api.eliminar(any()) } throws IOException("sin red")
+        assertEquals(ResultadoUsuario.ErrorRed, repositorio.eliminar(1L))
+    }
 }
