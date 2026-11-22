@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import com.example.appmm_grupo5.model.OpcionesPerfil
 import com.example.appmm_grupo5.model.TipoContenido
 import com.example.appmm_grupo5.navigation.Screen
 import com.example.appmm_grupo5.ui.components.BarraNavegacion
+import com.example.appmm_grupo5.ui.components.MensajeError
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
 import com.example.appmm_grupo5.viewmodel.CatalogoViewModel
 import com.example.appmm_grupo5.viewmodel.MainViewModel
@@ -58,6 +60,8 @@ fun AprenderScreen(
     val tipoElegido by catalogoViewModel.tipo.collectAsState()
     val categoriaElegida by catalogoViewModel.categoria.collectAsState()
     val soloGuardados by catalogoViewModel.soloGuardados.collectAsState()
+    val cargando by catalogoViewModel.cargando.collectAsState()
+    val error by catalogoViewModel.error.collectAsState()
 
     // El catálogo necesita saber quién es el usuario para conocer sus favoritos
     LaunchedEffect(usuarioId) { catalogoViewModel.fijarUsuario(usuarioId) }
@@ -89,6 +93,9 @@ fun AprenderScreen(
             onCategoria = catalogoViewModel::seleccionarCategoria,
             onSoloGuardados = catalogoViewModel::alternarSoloGuardados,
             onAbrirContenido = onAbrirContenido,
+            cargando = cargando,
+            error = error,
+            onReintentar = catalogoViewModel::recargar,
             modifier = Modifier.padding(innerPadding)
         )
     }
@@ -105,6 +112,9 @@ fun AprenderContenido(
     onCategoria: (String?) -> Unit,
     onSoloGuardados: () -> Unit,
     onAbrirContenido: (Long) -> Unit,
+    cargando: Boolean = false,
+    error: String? = null,
+    onReintentar: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -166,7 +176,16 @@ fun AprenderContenido(
             }
         }
 
-        if (contenidos.isEmpty()) {
+        if (error != null) {
+            MensajeError(mensaje = error, onReintentar = onReintentar)
+        } else if (cargando && contenidos.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (contenidos.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
