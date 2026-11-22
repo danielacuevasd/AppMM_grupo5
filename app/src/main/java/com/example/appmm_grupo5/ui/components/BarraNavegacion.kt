@@ -11,12 +11,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.appmm_grupo5.navigation.Screen
+import androidx.compose.material.icons.filled.Cake
 
 private data class ItemBarra(val screen: Screen, val etiqueta: String, val icono: ImageVector)
 
 private val itemsBarra = listOf(
     ItemBarra(Screen.Inicio, "Inicio", Icons.Filled.Home),
     ItemBarra(Screen.Aprender, "Aprender", Icons.AutoMirrored.Filled.MenuBook),
+    ItemBarra(Screen.Postres, "Postres", Icons.Filled.Cake),
     ItemBarra(Screen.Perfil, "Perfil", Icons.Filled.Person)
 )
 
