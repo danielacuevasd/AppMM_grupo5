@@ -78,6 +78,48 @@ No hay usuarios precargados: en la pantalla de Login usa **Regístrate** para cr
 ./gradlew :app:connectedDebugAndroidTest  # prueba de la base de datos (con emulador encendido)
 ```
 
+## APK firmado
+
+El APK de entrega está en `app/release/app-release.apk` y la llave con la que se firmó en `app/keystore/mastermartini.jks`. La llave se creó solo para este curso y no se usa en ningún otro proyecto.
+
+| Dato de la llave | Valor |
+|---|---|
+| Archivo | `app/keystore/mastermartini.jks` |
+| Alias | `mastermartini` |
+| Contraseña del almacén y de la clave | `MasterMartini2026` |
+| Algoritmo | RSA 2048, válida por 10.000 días |
+
+**Cómo se creó la llave** (una sola vez):
+
+```bash
+keytool -genkeypair -v -keystore app/keystore/mastermartini.jks -alias mastermartini -keyalg RSA -keysize 2048 -validity 10000
+```
+
+**Cómo se firma el APK:** el bloque `signingConfigs` de `app/build.gradle.kts` apunta a esa llave y el tipo de compilación `release` lo usa (`signingConfig = signingConfigs.getByName("release")`).
+
+**Cómo generar el APK:**
+
+```bash
+./gradlew :app:assembleRelease
+```
+
+El resultado queda en `app/build/outputs/apk/release/app-release.apk` (la carpeta `build/` no se sube a git), así que se copia a `app/release/`. El `.gitignore` bloquea `*.apk` y `*.jks`, y por eso tiene las excepciones `!app/release/*.apk` y `!app/keystore/*.jks` al final.
+
+**Cómo verificar la firma:**
+
+```bash
+apksigner verify --verbose --print-certs app/release/app-release.apk
+```
+
+Debe responder `Verifies` y mostrar el certificado `CN=Master Martini Grupo 5`.
+
+**Cómo instalarlo y probarlo en el emulador:**
+
+1. Desinstala antes la versión de desarrollo, porque está firmada con otra llave y Android no permite actualizar entre firmas distintas.
+2. Enciende `ms-usuarios` (puerto 8081) y `ms-catalogo` (puerto 8082) con `./mvnw spring-boot:run` dentro de cada carpeta.
+3. Instala el APK con `adb install app/release/app-release.apk`, o arrástralo sobre el emulador.
+4. La app llama a los servicios en `10.0.2.2`, que desde el emulador es el computador anfitrión. En un celular físico no funcionaría sin cambiar esa URL por la IP del computador y volver a generar el APK.
+
 ---
 
 ## Decisiones y límites del MVP
