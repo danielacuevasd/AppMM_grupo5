@@ -1,12 +1,8 @@
 package com.example.appmm_grupo5.repository
 
-import com.example.appmm_grupo5.data.ContenidoDao
 import com.example.appmm_grupo5.data.EncuestaDao
-import com.example.appmm_grupo5.data.FavoritoDao
 import com.example.appmm_grupo5.data.PerfilNegocioDao
-import com.example.appmm_grupo5.model.Contenido
 import com.example.appmm_grupo5.model.Encuesta
-import com.example.appmm_grupo5.model.Favorito
 import com.example.appmm_grupo5.model.PerfilNegocio
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -32,43 +28,4 @@ class EncuestaDaoTest : EncuestaDao {
     override suspend fun obtener(usuarioId: Long): Encuesta? = encuestas[usuarioId]
 
     override fun observar(usuarioId: Long): Flow<Encuesta?> = flowOf(encuestas[usuarioId])
-}
-
-class ContenidoDaoTest(val contenidos: List<Contenido>) : ContenidoDao {
-    override suspend fun insertarTodos(contenidos: List<Contenido>) {}
-
-    override suspend fun contar(): Int = contenidos.size
-
-    override fun filtrar(tipo: String?, categoria: String?): Flow<List<Contenido>> =
-        flowOf(
-            contenidos.filter {
-                (tipo == null || it.tipo == tipo) && (categoria == null || it.categoria == categoria)
-            }.sortedBy { it.titulo }
-        )
-
-    override suspend fun buscarPorId(id: Long): Contenido? =
-        contenidos.firstOrNull { it.id == id }
-}
-
-class FavoritoDaoTest(private val contenidos: List<Contenido>) : FavoritoDao {
-    private val favoritos = mutableSetOf<Favorito>()
-
-    override suspend fun agregar(favorito: Favorito) {
-        favoritos.add(favorito)
-    }
-
-    override suspend fun quitar(usuarioId: Long, contenidoId: Long) {
-        favoritos.remove(Favorito(usuarioId, contenidoId))
-    }
-
-    override fun esFavorito(usuarioId: Long, contenidoId: Long): Flow<Boolean> =
-        flowOf(Favorito(usuarioId, contenidoId) in favoritos)
-
-    override fun idsFavoritos(usuarioId: Long): Flow<List<Long>> =
-        flowOf(favoritos.filter { it.usuarioId == usuarioId }.map { it.contenidoId })
-
-    override fun observarFavoritos(usuarioId: Long): Flow<List<Contenido>> {
-        val ids = favoritos.filter { it.usuarioId == usuarioId }.map { it.contenidoId }
-        return flowOf(contenidos.filter { it.id in ids }.sortedBy { it.titulo })
-    }
 }

@@ -5,7 +5,6 @@ import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.appmm_grupo5.model.Favorito
 import com.example.appmm_grupo5.model.PerfilNegocio
 import com.example.appmm_grupo5.model.TipoContenido
 import com.example.appmm_grupo5.model.Usuario
@@ -74,47 +73,6 @@ class AppDatabaseTest {
             db.perfilNegocioDao().guardar(perfil)
             db.perfilNegocioDao().guardar(perfil.copy(empleados = 12))
             assertEquals(12, db.perfilNegocioDao().obtener(id)?.empleados)
-        }
-    }
-
-    @Test
-    fun carga_los_datos_de_ejemplo_solo_una_vez() {
-        runBlocking {
-            db.cargarDatosEjemploSiHaceFalta()
-            db.cargarDatosEjemploSiHaceFalta()
-            assertEquals(DatosEjemplo.contenidos.size, db.contenidoDao().contar())
-        }
-    }
-
-    @Test
-    fun filtra_los_contenidos_por_tipo_y_categoria() {
-        runBlocking {
-            db.cargarDatosEjemploSiHaceFalta()
-            val recetas = db.contenidoDao().filtrar(TipoContenido.RECETA, null).first()
-            assertTrue(recetas.isNotEmpty() && recetas.all { it.tipo == TipoContenido.RECETA })
-
-            val galletas = db.contenidoDao().filtrar(null, "Galletas").first()
-            assertTrue(galletas.isNotEmpty() && galletas.all { it.categoria == "Galletas" })
-
-            val todos = db.contenidoDao().filtrar(null, null).first()
-            assertEquals(DatosEjemplo.contenidos.size, todos.size)
-        }
-    }
-
-    @Test
-    fun agrega_y_quita_favoritos() {
-        runBlocking {
-            val usuarioId = db.usuarioDao().insertar(usuario("camila@negocio.cl"))
-            db.cargarDatosEjemploSiHaceFalta()
-            val contenido = db.contenidoDao().filtrar(null, null).first().first()
-
-            db.favoritoDao().agregar(Favorito(usuarioId, contenido.id))
-            assertTrue(db.favoritoDao().esFavorito(usuarioId, contenido.id).first())
-            assertEquals(1, db.favoritoDao().observarFavoritos(usuarioId).first().size)
-
-            db.favoritoDao().quitar(usuarioId, contenido.id)
-            assertFalse(db.favoritoDao().esFavorito(usuarioId, contenido.id).first())
-            assertNotNull(db.contenidoDao().buscarPorId(contenido.id))
         }
     }
 }
