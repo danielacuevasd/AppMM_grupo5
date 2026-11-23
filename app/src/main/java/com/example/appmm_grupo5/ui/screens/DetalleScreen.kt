@@ -37,7 +37,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -48,9 +47,9 @@ import com.example.appmm_grupo5.data.DatosEjemplo
 import com.example.appmm_grupo5.model.Contenido
 import com.example.appmm_grupo5.model.TipoContenido
 import com.example.appmm_grupo5.ui.components.BotonPrincipal
+import com.example.appmm_grupo5.ui.components.MensajeError
 import com.example.appmm_grupo5.ui.theme.AppMM_grupo5Theme
 import com.example.appmm_grupo5.viewmodel.DetalleViewModel
-import kotlinx.coroutines.launch
 
 // Pantalla de detalle de un contenido, con la opción de guardarlo en favoritos.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,23 +62,23 @@ fun DetalleScreen(
 ) {
     val contenido by detalleViewModel.contenido.collectAsState()
     val esFavorito by detalleViewModel.esFavorito.collectAsState()
+    val error by detalleViewModel.error.collectAsState()
+    val mensaje by detalleViewModel.mensaje.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val puedeGuardar = usuarioId != null && usuarioId > 0L
 
     LaunchedEffect(contenidoId, usuarioId) {
         if (contenidoId != null) detalleViewModel.cargar(contenidoId, usuarioId ?: 0L)
     }
 
-    // Cambia el favorito y avisa con un mensaje
-    val alternarFavorito: () -> Unit = {
-        detalleViewModel.cambiarFavorito()
-        scope.launch {
-            snackbarHostState.showSnackbar(
-                if (esFavorito) "Quitado de tus favoritos" else "Guardado en tus favoritos"
-            )
+    LaunchedEffect(mensaje) {
+        mensaje?.let {
+            snackbarHostState.showSnackbar(it)
+            detalleViewModel.mensajeMostrado()
         }
     }
+
+    val alternarFavorito: () -> Unit = { detalleViewModel.cambiarFavorito() }
 
     Scaffold(
         topBar = {
@@ -111,7 +110,16 @@ fun DetalleScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         val actual = contenido
-        if (actual == null) {
+        val mensajeError = error
+        if (actual == null && mensajeError != null) {
+            MensajeError(
+                mensaje = mensajeError,
+                onReintentar = {
+                    if (contenidoId != null) detalleViewModel.cargar(contenidoId, usuarioId ?: 0L)
+                },
+                modifier = Modifier.padding(innerPadding)
+            )
+        } else if (actual == null) {
             Box(
                 modifier = Modifier
                     .padding(innerPadding)

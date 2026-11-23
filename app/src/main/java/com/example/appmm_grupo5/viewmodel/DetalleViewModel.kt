@@ -1,56 +1,78 @@
 package com.example.appmm_grupo5.viewmodel
 
-import android.app.Application
-import android.database.sqlite.SQLiteConstraintException
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.appmm_grupo5.data.AppDatabase
 import com.example.appmm_grupo5.model.Contenido
+import com.example.appmm_grupo5.network.RetrofitClient
 import com.example.appmm_grupo5.repository.ContenidoRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.example.appmm_grupo5.repository.ResultadoCatalogo
+import com.example.appmm_grupo5.repository.mensajeError
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-// Estado de la pantalla de detalle: el contenido abierto y si está en favoritos del usuario.
-class DetalleViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val baseDeDatos = AppDatabase.obtener(application)
-    private val repositorio = ContenidoRepository(baseDeDatos.contenidoDao(), baseDeDatos.favoritoDao())
+class DetalleViewModel(
+    private val repositorio: ContenidoRepository = ContenidoRepository(RetrofitClient.catalogoApi)
+) : ViewModel() {
 
     private val _contenido = MutableStateFlow<Contenido?>(null)
     val contenido: StateFlow<Contenido?> = _contenido.asStateFlow()
 
-    // Par (usuarioId, contenidoId) para consultar y cambiar el favorito
-    private val _claveFavorito = MutableStateFlow<Pair<Long, Long>?>(null)
+    private val _esFavorito = MutableStateFlow(false)
+    val esFavorito: StateFlow<Boolean> = _esFavorito.asStateFlow()
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val esFavorito: StateFlow<Boolean> = _claveFavorito
-        .flatMapLatest { clave ->
-            if (clave == null) flowOf(false) else repositorio.esFavorito(clave.first, clave.second)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    private val _cargando = MutableStateFlow(true)
+    val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    private val _mensaje = MutableStateFlow<String?>(null)
+    val mensaje: StateFlow<String?> = _mensaje.asStateFlow()
+
+    private var contenidoId: Long? = null
+    private var usuarioId: Long = 0L
 
     fun cargar(contenidoId: Long, usuarioId: Long) {
-        // Sin una sesión válida no se pueden guardar favoritos
-        _claveFavorito.value = if (usuarioId > 0L) usuarioId to contenidoId else null
-        viewModelScope.launch { _contenido.value = repositorio.buscarPorId(contenidoId) }
+        this.contenidoId = contenidoId
+        this.usuarioId = usuarioId
+        viewModelScope.launch {
+            _cargando.value = true
+            _error.value = null
+            val resultado = repositorio.buscarPorId(contenidoId)
+            if (resultado is ResultadoCatalogo.Exito) {
+                _contenido.value = resultado.datos
+                _esFavorito.value = usuarioId > 0L && estaGuardado(usuarioId, contenidoId)
+            } else {
+                _contenido.value = null
+                _error.value = resultado.mensajeError()
+            }
+            _cargando.value = false
+        }
     }
 
     fun cambiarFavorito() {
-        val clave = _claveFavorito.value ?: return
+        val id = contenidoId ?: return
+        if (usuarioId <= 0L) return
         viewModelScope.launch {
-            try {
-                repositorio.cambiarFavorito(clave.first, clave.second, !esFavorito.value)
-            } catch (e: SQLiteConstraintException) {
-                // La sesión guardada apunta a un usuario que ya no existe en la base
-                // (por ejemplo, si se recreó). Se ignora; al volver a ingresar se resuelve.
+            val marcar = !_esFavorito.value
+            val resultado = repositorio.cambiarFavorito(usuarioId, id, marcar)
+            if (resultado is ResultadoCatalogo.Exito) {
+                _esFavorito.value = marcar
+                _mensaje.value = if (marcar) "Guardado en tus favoritos" else "Quitado de tus favoritos"
+            } else {
+                _mensaje.value = resultado.mensajeError()
             }
         }
+    }
+
+    fun mensajeMostrado() {
+        _mensaje.value = null
+    }
+
+    private suspend fun estaGuardado(usuarioId: Long, contenidoId: Long): Boolean {
+        val resultado = repositorio.favoritos(usuarioId)
+        return resultado is ResultadoCatalogo.Exito && resultado.datos.any { it.id == contenidoId }
     }
 }

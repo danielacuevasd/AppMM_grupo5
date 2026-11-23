@@ -14,9 +14,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.appmm_grupo5.MainActivity
 import com.example.appmm_grupo5.R
-import com.example.appmm_grupo5.data.AppDatabase
 import com.example.appmm_grupo5.model.Contenido
-import kotlinx.coroutines.flow.first
+import com.example.appmm_grupo5.network.RetrofitClient
+import com.example.appmm_grupo5.repository.ContenidoRepository
+import com.example.appmm_grupo5.repository.ResultadoCatalogo
 
 // Notificaciones locales de la app (recurso nativo).
 // Se avisa de contenido nuevo cuando el usuario activó "Recibir novedades" en la encuesta.
@@ -86,10 +87,9 @@ object Notificaciones {
 
     // Busca un contenido del catálogo según los intereses y avisa de él
     suspend fun avisarContenidoNuevo(context: Context, intereses: Set<String>): Boolean {
-        val base = AppDatabase.obtener(context)
-        base.cargarDatosEjemploSiHaceFalta()
-        val todos = base.contenidoDao().filtrar(null, null).first()
-        val elegido = elegirContenido(todos, intereses) ?: return false
+        val resultado = ContenidoRepository(RetrofitClient.catalogoApi).filtrar()
+        if (resultado !is ResultadoCatalogo.Exito) return false
+        val elegido = elegirContenido(resultado.datos, intereses) ?: return false
         return mostrar(
             context = context,
             titulo = "Nuevo para ti en Master Martini",

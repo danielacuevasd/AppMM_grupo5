@@ -4,30 +4,17 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.appmm_grupo5.model.Contenido
 import com.example.appmm_grupo5.model.Encuesta
-import com.example.appmm_grupo5.model.Favorito
 import com.example.appmm_grupo5.model.PerfilNegocio
-import com.example.appmm_grupo5.model.Usuario
 
 @Database(
-    entities = [Usuario::class, PerfilNegocio::class, Encuesta::class, Contenido::class, Favorito::class],
-    version = 1,
+    entities = [PerfilNegocio::class, Encuesta::class],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun usuarioDao(): UsuarioDao
     abstract fun perfilNegocioDao(): PerfilNegocioDao
     abstract fun encuestaDao(): EncuestaDao
-    abstract fun contenidoDao(): ContenidoDao
-    abstract fun favoritoDao(): FavoritoDao
-
-    // Carga el contenido de ejemplo solo la primera vez, cuando la tabla está vacía
-    suspend fun cargarDatosEjemploSiHaceFalta() {
-        if (contenidoDao().contar() == 0) {
-            contenidoDao().insertarTodos(DatosEjemplo.contenidos)
-        }
-    }
 
     companion object {
         @Volatile

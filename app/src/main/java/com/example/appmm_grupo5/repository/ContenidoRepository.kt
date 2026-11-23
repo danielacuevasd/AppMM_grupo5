@@ -1,41 +1,72 @@
 package com.example.appmm_grupo5.repository
 
-import com.example.appmm_grupo5.data.ContenidoDao
-import com.example.appmm_grupo5.data.FavoritoDao
 import com.example.appmm_grupo5.model.Contenido
-import com.example.appmm_grupo5.model.Favorito
-import kotlinx.coroutines.flow.Flow
+import com.example.appmm_grupo5.network.CatalogoApi
+import com.example.appmm_grupo5.network.ContenidoResponse
+import com.example.appmm_grupo5.network.FavoritoRequest
+import retrofit2.Response
+import java.io.IOException
 
-// Repositorio del catalogo
-class ContenidoRepository(
-    private val contenidoDao: ContenidoDao,
-    private val favoritoDao: FavoritoDao
-) {
+sealed class ResultadoCatalogo<out T> {
+    data class Exito<out T>(val datos: T) : ResultadoCatalogo<T>()
+    object NoEncontrado : ResultadoCatalogo<Nothing>()
+    object ErrorRed : ResultadoCatalogo<Nothing>()
+    object ErrorServidor : ResultadoCatalogo<Nothing>()
+}
 
-    // Lista del catalogo, con tipo o categoria.
-    // Devuelve un Flow: si el contenido cambia, la pantalla se actualiza sola.
-    // Null para cuando no hay filtros aplicados
-    fun filtrar(tipo: String? = null, categoria: String? = null): Flow<List<Contenido>> =
-        contenidoDao.filtrar(tipo, categoria)
+fun ResultadoCatalogo<*>.mensajeError(): String? = when (this) {
+    is ResultadoCatalogo.Exito -> null
+    ResultadoCatalogo.NoEncontrado -> "No se encontró el contenido"
+    ResultadoCatalogo.ErrorRed -> "No hay conexión con el servidor. Revisa que ms-catalogo esté encendido"
+    ResultadoCatalogo.ErrorServidor -> "El servidor tuvo un problema. Intenta de nuevo"
+}
 
-    suspend fun buscarPorId(id: Long): Contenido? = contenidoDao.buscarPorId(id)
+class ContenidoRepository(private val api: CatalogoApi) {
 
-    // Los favoritos
-    fun idsFavoritos(usuarioId: Long): Flow<List<Long>> = favoritoDao.idsFavoritos(usuarioId)
+    suspend fun filtrar(tipo: String? = null, categoria: String? = null): ResultadoCatalogo<List<Contenido>> =
+        llamar({ api.listar(tipo, categoria) }) { lista -> lista.map { it.aContenido() } }
 
-    fun esFavorito(usuarioId: Long, contenidoId: Long): Flow<Boolean> =
-        favoritoDao.esFavorito(usuarioId, contenidoId)
+    suspend fun buscarPorId(id: Long): ResultadoCatalogo<Contenido> =
+        llamar({ api.obtener(id) }) { it.aContenido() }
 
-    // Contenido en guardados
-    fun observarFavoritos(usuarioId: Long): Flow<List<Contenido>> =
-        favoritoDao.observarFavoritos(usuarioId)
+    suspend fun favoritos(usuarioId: Long): ResultadoCatalogo<List<Contenido>> =
+        llamar({ api.favoritosDeUsuario(usuarioId) }) { lista -> lista.map { it.aContenido() } }
 
-    // Para agregar o quitar de favoritos
-    suspend fun cambiarFavorito(usuarioId: Long, contenidoId: Long, marcar: Boolean) {
+    suspend fun cambiarFavorito(usuarioId: Long, contenidoId: Long, marcar: Boolean): ResultadoCatalogo<Unit> =
         if (marcar) {
-            favoritoDao.agregar(Favorito(usuarioId, contenidoId))
+            llamar({ api.agregarFavorito(FavoritoRequest(usuarioId, contenidoId)) }) { }
         } else {
-            favoritoDao.quitar(usuarioId, contenidoId)
+            llamarSinCuerpo { api.quitarFavorito(usuarioId, contenidoId) }
         }
-    }
+
+    private suspend fun <R, T> llamar(
+        bloque: suspend () -> Response<R>,
+        convertir: (R) -> T
+    ): ResultadoCatalogo<T> =
+        try {
+            val respuesta = bloque()
+            val cuerpo = respuesta.body()
+            when {
+                respuesta.isSuccessful && cuerpo != null -> ResultadoCatalogo.Exito(convertir(cuerpo))
+                respuesta.code() == 404 -> ResultadoCatalogo.NoEncontrado
+                else -> ResultadoCatalogo.ErrorServidor
+            }
+        } catch (e: IOException) {
+            ResultadoCatalogo.ErrorRed
+        }
+
+    private suspend fun llamarSinCuerpo(bloque: suspend () -> Response<Unit>): ResultadoCatalogo<Unit> =
+        try {
+            val respuesta = bloque()
+            when {
+                respuesta.isSuccessful -> ResultadoCatalogo.Exito(Unit)
+                respuesta.code() == 404 -> ResultadoCatalogo.Exito(Unit)
+                else -> ResultadoCatalogo.ErrorServidor
+            }
+        } catch (e: IOException) {
+            ResultadoCatalogo.ErrorRed
+        }
+
+    private fun ContenidoResponse.aContenido() =
+        Contenido(id, tipo, titulo, categoria, descripcion, duracionMinutos, nivel)
 }

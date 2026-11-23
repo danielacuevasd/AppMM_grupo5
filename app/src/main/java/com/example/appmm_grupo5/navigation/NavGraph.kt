@@ -30,6 +30,9 @@ import com.example.appmm_grupo5.viewmodel.PerfilViewModel
 import com.example.appmm_grupo5.viewmodel.UsuarioViewModel
 import com.example.appmm_grupo5.viewmodel.CatalogoViewModel
 import kotlinx.coroutines.flow.collectLatest
+import com.example.appmm_grupo5.repository.ResultadoUsuario
+import com.example.appmm_grupo5.ui.screens.PostresScreen
+import com.example.appmm_grupo5.viewmodel.PostresViewModel
 
 // Graph de navegacion une cada ruta screen con su correspondiente
 // - NavController: lleva las pantallas y los eventos de navegacion.
@@ -198,7 +201,14 @@ fun AppNavGraph(
                 onVolver = { viewModel.navigateBack() }
             )
         }
+
+        composable(route = Screen.Postres.route) {
+            val postresViewModel: PostresViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            PostresScreen(viewModel = viewModel, postresViewModel = postresViewModel)
+        }
+
         composable(route = Screen.Perfil.route) {
+            val usuarioActual by sesionViewModel.usuarioActual.collectAsState()
             PerfilScreen(
                 viewModel = viewModel,
                 perfilViewModel = perfilViewModel,
@@ -213,6 +223,20 @@ fun AppNavGraph(
                 onFotoElegida = { origen ->
                     sesionViewModel.guardarFotoPerfil(origen) { copia ->
                         perfilViewModel.onImagenDeGaleria(copia)
+                    }
+                },
+                nombreUsuario = usuarioActual?.nombre ?: "",
+                telefonoUsuario = usuarioActual?.telefono ?: "",
+                onActualizarCuenta = { nombre, telefono, clave, resultado ->
+                    sesionViewModel.actualizarCuenta(nombre, telefono, clave, resultado)
+                },
+                onEliminarCuenta = { resultado ->
+                    sesionViewModel.eliminarCuenta { r ->
+                        if (r is ResultadoUsuario.Eliminado) {
+                            usuarioViewModel.reiniciarFormularios()
+                            viewModel.navigateTo(Screen.Login, popUpTo = Screen.Inicio, inclusive = true)
+                        }
+                        resultado(r)
                     }
                 }
             )

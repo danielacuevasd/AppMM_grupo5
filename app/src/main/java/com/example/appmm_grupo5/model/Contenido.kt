@@ -1,8 +1,5 @@
 package com.example.appmm_grupo5.model
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-
 // Tipos de contenido que muestra el catálogo
 object TipoContenido {
     const val RECETA = "Receta"
@@ -11,9 +8,7 @@ object TipoContenido {
     val todos = listOf(RECETA, CURSO, VIDEO)
 }
 
-@Entity(tableName = "contenidos")
 data class Contenido(
-    @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val tipo: String,
     val titulo: String,

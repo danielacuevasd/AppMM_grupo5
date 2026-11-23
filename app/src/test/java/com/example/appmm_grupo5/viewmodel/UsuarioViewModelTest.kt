@@ -70,4 +70,32 @@ class UsuarioViewModelTest {
         assertEquals("", vm.login.value.clave)
         assertEquals("", vm.registro.value.nombre)
     }
+
+    @Test
+    fun correo_ya_registrado_marca_error_en_el_correo_del_registro() {
+        val vm = UsuarioViewModel()
+        vm.correoYaRegistrado()
+        assertEquals("Este correo ya está registrado", vm.registro.value.errores.correo)
+    }
+
+    @Test
+    fun credenciales_incorrectas_marca_error_en_la_clave_del_login() {
+        val vm = UsuarioViewModel()
+        vm.credencialesIncorrectas()
+        assertEquals("Correo o clave incorrectos", vm.login.value.errores.clave)
+    }
+
+    @Test
+    fun error_de_conexion_en_registro_marca_el_correo() {
+        val vm = UsuarioViewModel()
+        vm.errorDeConexionRegistro()
+        assertEquals("No se pudo conectar con el servidor", vm.registro.value.errores.correo)
+    }
+
+    @Test
+    fun error_de_conexion_en_login_marca_la_clave() {
+        val vm = UsuarioViewModel()
+        vm.errorDeConexionLogin()
+        assertEquals("No se pudo conectar con el servidor", vm.login.value.errores.clave)
+    }
 }

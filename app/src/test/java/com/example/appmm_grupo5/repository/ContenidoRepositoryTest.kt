@@ -1,75 +1,178 @@
 package com.example.appmm_grupo5.repository
 
-import com.example.appmm_grupo5.model.Contenido
-import com.example.appmm_grupo5.model.TipoContenido
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import com.example.appmm_grupo5.network.CatalogoApi
+import com.example.appmm_grupo5.network.ContenidoResponse
+import com.example.appmm_grupo5.network.FavoritoRequest
+import com.example.appmm_grupo5.network.FavoritoResponse
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import retrofit2.Response
+import java.io.IOException
 
 class ContenidoRepositoryTest {
 
-    private val contenidos = listOf(
-        Contenido(1, TipoContenido.RECETA, "Sablés de cacao", "Galletas", "Galletas de cacao", 60, "Básico"),
-        Contenido(2, TipoContenido.CURSO, "Templado de chocolate", "Chocolatería", "Curso de templado", 40, "Intermedio"),
-        Contenido(3, TipoContenido.VIDEO, "Plegado de hojaldre", "Masas de hoja", "Video de plegado", 15, "Intermedio"),
-        Contenido(4, TipoContenido.RECETA, "Mousse de chocolate", "Chocolatería", "Postre de chocolate", 45, "Básico")
-    )
+    private lateinit var api: CatalogoApi
+    private lateinit var repositorio: ContenidoRepository
 
-    private val repositorio = ContenidoRepository(ContenidoDaoTest(contenidos), FavoritoDaoTest(contenidos))
+    private val sables = ContenidoResponse(1, "Receta", "Sables de cacao", "Galletas", "Galleta de cacao", 45, "Basico")
+    private val hojaldre = ContenidoResponse(2, "Video", "Plegado de hojaldre", "Masas de hoja", "Tecnica de plegado", 12, "Avanzado")
 
-    @Test
-    fun sin_filtros_devuelve_todo_el_catalogo() = runBlocking {
-        assertEquals(4, repositorio.filtrar().first().size)
+    private fun <T> error(codigo: Int): Response<T> =
+        Response.error(codigo, "".toResponseBody("application/json".toMediaType()))
+
+    @Before
+    fun preparar() {
+        api = mockk()
+        repositorio = ContenidoRepository(api)
     }
 
     @Test
-    fun filtra_por_categoria() = runBlocking {
-        val resultado = repositorio.filtrar(categoria = "Chocolatería").first()
-
-        assertEquals(2, resultado.size)
-        assertTrue(resultado.all { it.categoria == "Chocolatería" })
+    fun filtrar_correcto_convierte_las_respuestas_a_modelo() = runTest {
+        coEvery { api.listar(null, null) } returns Response.success(listOf(sables, hojaldre))
+        val resultado = repositorio.filtrar()
+        assertTrue(resultado is ResultadoCatalogo.Exito)
+        val lista = (resultado as ResultadoCatalogo.Exito).datos
+        assertEquals(2, lista.size)
+        assertEquals(1L, lista[0].id)
+        assertEquals("Sables de cacao", lista[0].titulo)
+        assertEquals(12, lista[1].duracionMinutos)
     }
 
     @Test
-    fun filtra_por_tipo_y_categoria_a_la_vez() = runBlocking {
-        val resultado = repositorio.filtrar(tipo = TipoContenido.RECETA, categoria = "Chocolatería").first()
-
-        assertEquals(1, resultado.size)
-        assertEquals("Mousse de chocolate", resultado[0].titulo)
+    fun filtrar_envia_el_tipo_y_la_categoria_al_servidor() = runTest {
+        coEvery { api.listar("Video", "Masas de hoja") } returns Response.success(listOf(hojaldre))
+        val resultado = repositorio.filtrar("Video", "Masas de hoja")
+        assertEquals(1, (resultado as ResultadoCatalogo.Exito).datos.size)
+        coVerify(exactly = 1) { api.listar("Video", "Masas de hoja") }
     }
 
     @Test
-    fun busca_un_contenido_por_su_id() = runBlocking {
-        assertEquals("Plegado de hojaldre", repositorio.buscarPorId(3)?.titulo)
-        assertNull(repositorio.buscarPorId(99))
+    fun filtrar_con_lista_vacia_devuelve_exito_sin_datos() = runTest {
+        coEvery { api.listar(any(), any()) } returns Response.success(emptyList())
+        val resultado = repositorio.filtrar("Curso", null)
+        assertEquals(emptyList<Any>(), (resultado as ResultadoCatalogo.Exito).datos)
     }
 
     @Test
-    fun marcar_un_favorito_lo_agrega_a_la_lista_del_usuario() = runBlocking {
-        repositorio.cambiarFavorito(usuarioId = 1, contenidoId = 2, marcar = true)
-
-        assertEquals(listOf(2L), repositorio.idsFavoritos(1).first())
-        assertTrue(repositorio.esFavorito(1, 2).first())
-        assertEquals("Templado de chocolate", repositorio.observarFavoritos(1).first()[0].titulo)
+    fun filtrar_sin_internet_devuelve_ErrorRed() = runTest {
+        coEvery { api.listar(any(), any()) } throws IOException("sin red")
+        assertEquals(ResultadoCatalogo.ErrorRed, repositorio.filtrar())
     }
 
     @Test
-    fun desmarcar_un_favorito_lo_quita() = runBlocking {
-        repositorio.cambiarFavorito(1, 2, marcar = true)
-        repositorio.cambiarFavorito(1, 2, marcar = false)
-
-        assertTrue(repositorio.idsFavoritos(1).first().isEmpty())
-        assertFalse(repositorio.esFavorito(1, 2).first())
+    fun filtrar_con_error_500_devuelve_ErrorServidor() = runTest {
+        coEvery { api.listar(any(), any()) } returns error(500)
+        assertEquals(ResultadoCatalogo.ErrorServidor, repositorio.filtrar())
     }
 
     @Test
-    fun los_favoritos_son_de_cada_usuario() = runBlocking {
-        repositorio.cambiarFavorito(usuarioId = 1, contenidoId = 2, marcar = true)
+    fun buscar_por_id_correcto_devuelve_el_contenido() = runTest {
+        coEvery { api.obtener(1) } returns Response.success(sables)
+        val resultado = repositorio.buscarPorId(1)
+        assertEquals("Galletas", (resultado as ResultadoCatalogo.Exito).datos.categoria)
+    }
 
-        assertTrue(repositorio.idsFavoritos(2).first().isEmpty())
+    @Test
+    fun buscar_por_id_inexistente_devuelve_NoEncontrado() = runTest {
+        coEvery { api.obtener(99) } returns error(404)
+        assertEquals(ResultadoCatalogo.NoEncontrado, repositorio.buscarPorId(99))
+    }
+
+    @Test
+    fun buscar_por_id_con_error_500_devuelve_ErrorServidor() = runTest {
+        coEvery { api.obtener(any()) } returns error(500)
+        assertEquals(ResultadoCatalogo.ErrorServidor, repositorio.buscarPorId(1))
+    }
+
+    @Test
+    fun buscar_por_id_sin_internet_devuelve_ErrorRed() = runTest {
+        coEvery { api.obtener(any()) } throws IOException("sin red")
+        assertEquals(ResultadoCatalogo.ErrorRed, repositorio.buscarPorId(1))
+    }
+
+    @Test
+    fun favoritos_correcto_devuelve_los_contenidos_guardados() = runTest {
+        coEvery { api.favoritosDeUsuario(7) } returns Response.success(listOf(hojaldre))
+        val resultado = repositorio.favoritos(7)
+        val lista = (resultado as ResultadoCatalogo.Exito).datos
+        assertEquals(listOf(2L), lista.map { it.id })
+    }
+
+    @Test
+    fun favoritos_sin_internet_devuelve_ErrorRed() = runTest {
+        coEvery { api.favoritosDeUsuario(any()) } throws IOException("sin red")
+        assertEquals(ResultadoCatalogo.ErrorRed, repositorio.favoritos(7))
+    }
+
+    @Test
+    fun marcar_favorito_envia_el_usuario_y_el_contenido() = runTest {
+        coEvery { api.agregarFavorito(FavoritoRequest(7, 1)) } returns Response.success(FavoritoResponse(7, 1))
+        val resultado = repositorio.cambiarFavorito(7, 1, true)
+        assertTrue(resultado is ResultadoCatalogo.Exito)
+        coVerify(exactly = 1) { api.agregarFavorito(FavoritoRequest(7, 1)) }
+        coVerify(exactly = 0) { api.quitarFavorito(any(), any()) }
+    }
+
+    @Test
+    fun marcar_favorito_de_contenido_inexistente_devuelve_NoEncontrado() = runTest {
+        coEvery { api.agregarFavorito(any()) } returns error(404)
+        assertEquals(ResultadoCatalogo.NoEncontrado, repositorio.cambiarFavorito(7, 99, true))
+    }
+
+    @Test
+    fun marcar_favorito_con_error_400_devuelve_ErrorServidor() = runTest {
+        coEvery { api.agregarFavorito(any()) } returns error(400)
+        assertEquals(ResultadoCatalogo.ErrorServidor, repositorio.cambiarFavorito(0, 1, true))
+    }
+
+    @Test
+    fun marcar_favorito_sin_internet_devuelve_ErrorRed() = runTest {
+        coEvery { api.agregarFavorito(any()) } throws IOException("sin red")
+        assertEquals(ResultadoCatalogo.ErrorRed, repositorio.cambiarFavorito(7, 1, true))
+    }
+
+    @Test
+    fun quitar_favorito_correcto_devuelve_exito() = runTest {
+        coEvery { api.quitarFavorito(7, 1) } returns Response.success(Unit)
+        val resultado = repositorio.cambiarFavorito(7, 1, false)
+        assertTrue(resultado is ResultadoCatalogo.Exito)
+        coVerify(exactly = 1) { api.quitarFavorito(7, 1) }
+        coVerify(exactly = 0) { api.agregarFavorito(any()) }
+    }
+
+    @Test
+    fun quitar_favorito_que_ya_no_existe_se_considera_exito() = runTest {
+        coEvery { api.quitarFavorito(any(), any()) } returns error(404)
+        assertTrue(repositorio.cambiarFavorito(7, 1, false) is ResultadoCatalogo.Exito)
+    }
+
+    @Test
+    fun quitar_favorito_con_error_500_devuelve_ErrorServidor() = runTest {
+        coEvery { api.quitarFavorito(any(), any()) } returns error(500)
+        assertEquals(ResultadoCatalogo.ErrorServidor, repositorio.cambiarFavorito(7, 1, false))
+    }
+
+    @Test
+    fun quitar_favorito_sin_internet_devuelve_ErrorRed() = runTest {
+        coEvery { api.quitarFavorito(any(), any()) } throws IOException("sin red")
+        assertEquals(ResultadoCatalogo.ErrorRed, repositorio.cambiarFavorito(7, 1, false))
+    }
+
+    @Test
+    fun mensajes_de_error_segun_el_resultado() {
+        assertNull(ResultadoCatalogo.Exito(Unit).mensajeError())
+        assertEquals("No se encontró el contenido", ResultadoCatalogo.NoEncontrado.mensajeError())
+        assertNotNull(ResultadoCatalogo.ErrorRed.mensajeError())
+        assertNotNull(ResultadoCatalogo.ErrorServidor.mensajeError())
     }
 }

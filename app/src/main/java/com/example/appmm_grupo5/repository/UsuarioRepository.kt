@@ -1,37 +1,72 @@
 package com.example.appmm_grupo5.repository
 
-import com.example.appmm_grupo5.data.Seguridad
-import com.example.appmm_grupo5.data.UsuarioDao
 import com.example.appmm_grupo5.model.Usuario
+import com.example.appmm_grupo5.network.ActualizarRequest
+import com.example.appmm_grupo5.network.LoginRequest
+import com.example.appmm_grupo5.network.RegistroRequest
+import com.example.appmm_grupo5.network.UsuarioApi
+import com.example.appmm_grupo5.network.UsuarioResponse
+import retrofit2.Response
+import java.io.IOException
 
-// Repositorio de usuarios, guarda y recupera usuarios de la base de datos
-class UsuarioRepository(private val usuarioDao: UsuarioDao) {
+// Resultado de cada operación, para que la pantalla sepa qué mensaje mostrar
+sealed class ResultadoUsuario {
+    data class Exito(val usuario: Usuario) : ResultadoUsuario()
+    object Eliminado : ResultadoUsuario()               // 204 al borrar la cuenta
+    object CorreoRepetido : ResultadoUsuario()          // 409
+    object CredencialesIncorrectas : ResultadoUsuario() // 401
+    object NoEncontrado : ResultadoUsuario()            // 404
+    object ErrorRed : ResultadoUsuario()                // sin conexión o servidor apagado
+    object ErrorServidor : ResultadoUsuario()           // cualquier otro código
+}
 
-    // Devuelve el usuario creado, o null si ese correo ya estaba registrado.
-    // La clave por seguridad se guarda como un hash SHA-256
-    suspend fun registrar(nombre: String, correo: String, telefono: String, clave: String): Usuario? {
-        val correoLimpio = normalizarCorreo(correo)
-        if (usuarioDao.buscarPorCorreo(correoLimpio) != null) return null
+// Repositorio de usuarios: habla con el microservicio ms-usuarios
+class UsuarioRepository(private val api: UsuarioApi) {
 
-        val nuevo = Usuario(
-            nombre = nombre.trim(),
-            correo = correoLimpio,
-            telefono = telefono.trim(),
-            claveHash = Seguridad.sha256(clave)
-        )
-        val id = usuarioDao.insertar(nuevo)
-        return nuevo.copy(id = id)
-    }
+    suspend fun registrar(nombre: String, correo: String, telefono: String, clave: String): ResultadoUsuario =
+        llamar {
+            api.registrar(RegistroRequest(nombre.trim(), normalizarCorreo(correo), telefono.trim(), clave))
+        }
 
-    // Si la clave y correo coinciden con un usuario, devuelve el usuario.
-    suspend fun iniciarSesion(correo: String, clave: String): Usuario? {
-        val usuario = usuarioDao.buscarPorCorreo(normalizarCorreo(correo)) ?: return null
-        return if (usuario.claveHash == Seguridad.sha256(clave)) usuario else null
-    }
+    suspend fun iniciarSesion(correo: String, clave: String): ResultadoUsuario =
+        llamar { api.login(LoginRequest(normalizarCorreo(correo), clave)) }
 
-    suspend fun buscarPorCorreo(correo: String): Usuario? =
-        usuarioDao.buscarPorCorreo(normalizarCorreo(correo))
+    suspend fun buscarPorId(id: Long): ResultadoUsuario = llamar { api.obtener(id) }
 
-    suspend fun buscarPorId(id: Long): Usuario? = usuarioDao.buscarPorId(id)
+    // La clave es opcional: si es null no se cambia
+    suspend fun actualizar(id: Long, nombre: String, telefono: String, clave: String?): ResultadoUsuario =
+        llamar { api.actualizar(id, ActualizarRequest(nombre.trim(), telefono.trim(), clave)) }
+
+    suspend fun eliminar(id: Long): ResultadoUsuario =
+        try {
+            val respuesta = api.eliminar(id)
+            when {
+                respuesta.isSuccessful -> ResultadoUsuario.Eliminado
+                respuesta.code() == 404 -> ResultadoUsuario.NoEncontrado
+                else -> ResultadoUsuario.ErrorServidor
+            }
+        } catch (e: IOException) {
+            ResultadoUsuario.ErrorRed
+        }
+
+    // Ejecuta la llamada y traduce el código HTTP a un resultado
+    private suspend fun llamar(bloque: suspend () -> Response<UsuarioResponse>): ResultadoUsuario =
+        try {
+            val respuesta = bloque()
+            when {
+                respuesta.isSuccessful ->
+                    respuesta.body()?.let { ResultadoUsuario.Exito(it.aUsuario()) }
+                        ?: ResultadoUsuario.ErrorServidor
+                respuesta.code() == 409 -> ResultadoUsuario.CorreoRepetido
+                respuesta.code() == 401 -> ResultadoUsuario.CredencialesIncorrectas
+                respuesta.code() == 404 -> ResultadoUsuario.NoEncontrado
+                else -> ResultadoUsuario.ErrorServidor
+            }
+        } catch (e: IOException) {
+            ResultadoUsuario.ErrorRed
+        }
+
+    private fun UsuarioResponse.aUsuario() = Usuario(id, nombre, correo, telefono)
+
     private fun normalizarCorreo(correo: String): String = correo.trim().lowercase()
 }
